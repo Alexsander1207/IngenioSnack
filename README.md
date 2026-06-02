@@ -59,10 +59,11 @@ La Iteracion 1 tiene una capacidad maxima de **20 puntos de historia**. Por ello
 
 ## Integrantes
 
-- Integrante 1: ____________________
-- Integrante 2: ____________________
-- Integrante 3: ____________________
-- Integrante 4: ____________________
+- Integrante 1: ARTICA ARIAS GUSTAVO ALONSO 
+- Integrante 2: CHAVEZ PAQUIYAURI JACK LUIS
+- Integrante 3: FLORES CCENTE FRANKLIN DAVID
+- Integrante 4: JAYO MALLQUI ALEXSANDER ANTONI
+- Integrante 5: RAYMUNDO CONDOR FRANK ANGEL
 
 ## Estado
 
