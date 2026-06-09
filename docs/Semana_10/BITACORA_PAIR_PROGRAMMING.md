@@ -25,6 +25,9 @@ de **Driver** (escribe el codigo) y **Navigator** (revisa, piensa en el diseno).
 | Aprendizajes   | El ciclo TDD exige escribir la prueba antes que la implementacion. La fase RED confirma que el test existe y detecta la ausencia de logica. |
 | Pendientes     | Completar implementacion y verificar todos los tests en verde.          |
 
+
+<img width="1365" height="610" alt="image" src="https://github.com/user-attachments/assets/cd47abce-981a-47c3-bc0e-84b0487e049e" />
+
 ---
 
 ### Sesion 2 — Dia 1 | Pareja Frontend + Documentacion
@@ -41,6 +44,15 @@ de **Driver** (escribe el codigo) y **Navigator** (revisa, piensa en el diseno).
 | Resultado      | `app.js` actualizado con funcion `mostrarPantallaPrincipal()` que muestra el menu organizado por categorias con estado de disponibilidad. README y estructura `docs/Semana_10/` completados. |
 | Aprendizajes   | Separar la logica de presentacion en su propia funcion facilita las pruebas y la futura migracion a una UI web o movil real. |
 | Pendientes     | Dia 2: conectar la vista con el flujo de creacion de pedido.            |
+
+
+
+<img width="1358" height="553" alt="image" src="https://github.com/user-attachments/assets/209b1f0c-7fab-4fa6-8aa3-803ba5377f63" />
+
+
+
+
+
 
 ---
 
@@ -66,6 +78,8 @@ unifico `memoria.js` para exportar el objeto directamente.
 Todas las pruebas de `menuService.test.js` pasan en verde, cumpliendo la fase Green
 del ciclo TDD para HU-01.
 
+
+
 ---
 
 ### Sesion Dia 3 — Pedido anticipado y calculo total
@@ -78,6 +92,7 @@ del ciclo TDD para HU-01.
 |-----------|-------------------------|
 | Conductor | [Nombre del integrante] |
 | Navegador | [Nombre del integrante] |
+
 
 #### Actividad realizada
 
@@ -92,6 +107,9 @@ Las pruebas de `calcularSubtotal`, `calcularTotalPedido` y `agregarItemPedido` p
 verde (total = S/ 13.00 para el caso de prueba), cumpliendo la fase Green del ciclo TDD.
 
 ---
+
+<img width="1365" height="542" alt="image" src="https://github.com/user-attachments/assets/b21d341b-3db9-4dd8-bf4b-4e0f2c533087" />
+
 
 ### Sesion 4 — Dia 4 | Pareja Backend + Tests
 
@@ -110,6 +128,9 @@ verde (total = S/ 13.00 para el caso de prueba), cumpliendo la fase Green del ci
 
 ---
 
+
+
+
 ### Sesion 5 — Dia 4 | Pareja Frontend + Documentacion
 
 | Campo          | Detalle                                                                          |
@@ -124,6 +145,14 @@ verde (total = S/ 13.00 para el caso de prueba), cumpliendo la fase Green del ci
 | Resultado      | `app.js` con `mostrarResumenPedido`, `mostrarMensaje` y flujo de validacion. `REFACTORIZACION.md` completo con 4 refactors documentados. README actualizado con estado HU-03 en verde. |
 | Aprendizajes   | Los mensajes visuales claros (producto no disponible, pedido confirmado) mejoran la experiencia sin necesidad de una UI web real. |
 | Pendientes     | Tomar captura `03_refactor_codigo_limpio.png` con los tests en verde.            |
+
+
+
+
+<img width="1357" height="549" alt="image" src="https://github.com/user-attachments/assets/23a77f34-6d76-4af9-8caf-abc795269734" />
+
+
+
 
 ---
 
@@ -160,6 +189,10 @@ verde (total = S/ 13.00 para el caso de prueba), cumpliendo la fase Green del ci
 | Pendientes     | Tomar capturas de pantalla para EVIDENCIAS_TDD y subir al repositorio.           |
 
 ---
+
+
+<img width="1357" height="524" alt="image" src="https://github.com/user-attachments/assets/d9a91c26-720a-47a7-a69c-f71f22859c58" />
+
 
 ## Plantilla para sesiones futuras
 
