@@ -18,7 +18,6 @@ const { db }           = require('./src/data/memoria');
 
 const app = express();
 app.use(express.json());
-app.use(express.static(path.join(__dirname, 'public')));
 
 // ─── SERIALIZACION ──────────────────────────────────────────────
 // Los getters de clase (total, subtotal) no los incluye JSON.stringify,
@@ -240,6 +239,9 @@ app.get('/api/reporte', (_req, res) => {
     estadisticas: reporteService.estadisticasGenerales(),
   });
 });
+
+// Servir SPA después de todas las rutas API
+app.use(express.static(path.join(__dirname, 'public')));
 
 // ─── ARRANCAR ───────────────────────────────────────────────────
 const PORT = 3000;
