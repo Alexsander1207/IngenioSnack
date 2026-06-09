@@ -1,0 +1,23 @@
+{
+  "name": "ingeniosnack",
+  "version": "0.1.0",
+  "description": "Sistema de pedidos anticipados para la cafeteria IngenioSnack (Practica XP - IS055B)",
+  "main": "src/app.js",
+  "scripts": {
+    "start": "node src/app.js",
+    "test": "jest",
+    "test:watch": "jest --watch",
+    "test:coverage": "jest --coverage"
+  },
+  "keywords": [
+    "xp",
+    "tdd",
+    "cafeteria",
+    "pedidos"
+  ],
+  "author": "Equipo IngenioSnack - UNCP FIS",
+  "license": "MIT",
+  "devDependencies": {
+    "jest": "^29.7.0"
+  }
+}
