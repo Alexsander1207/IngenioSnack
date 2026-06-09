@@ -1,94 +1,136 @@
-# IngenioSnack - Practica Semana 09
+# IngenioSnack
 
-Repositorio academico para la practica de la asignatura **Metodologia de Desarrollo de Software (IS055B)**, Unidad II: **Metodologia XP**.
+Sistema de pedidos anticipados para la cafeteria **IngenioSnack**, ubicada al costado
+de los laboratorios de la Facultad de Ingenieria de Sistemas de la UNCP.
 
-## Caso de estudio
+**Asignatura:** Metodologia de Desarrollo de Software (IS055B) — Unidad II: XP
+**Sprint activo:** MVP 5 dias — Semana 10
 
-**IngenioSnack** es una cafeteria ubicada al costado de los laboratorios de la Facultad de Ingenieria de Sistemas de la UNCP. El problema principal es la acumulacion de estudiantes durante el recreo, lo que genera filas largas, perdida de tiempo, retrasos a clase y perdida de ventas para el negocio.
+---
 
-El cliente, el Sr. Julio, solicita una solucion web/movil simple que permita a los estudiantes realizar pedidos desde su celular antes de salir de clase, recogerlos rapidamente y pagar contra entrega.
+## Objetivo del proyecto
 
-## Objetivo de la practica
+Resolver la acumulacion de estudiantes durante el recreo permitiendo realizar pedidos
+anticipados desde el celular, recogerlos rapidamente y pagar contra entrega.
 
-Aplicar practicas iniciales de **Extreme Programming (XP)** para:
+El cliente, el Sr. Julio, solicita una solucion simple que permita a los estudiantes
+hacer pedidos antes de salir de clase, evitando filas largas y perdida de tiempo.
 
-- Levantar requerimientos desde la conversacion con el cliente.
-- Identificar ambiguedades y tomar decisiones justificadas.
-- Redactar historias de usuario con criterios de aceptacion.
-- Estimar esfuerzo usando Planning Poker con Fibonacci.
-- Seleccionar el alcance de la Iteracion 1 con una capacidad maxima de 20 puntos.
-- Elaborar tarjetas CRC para el flujo principal de pedir y recoger.
+---
 
-## Contenido del repositorio
+## Metodologia XP aplicada
+
+| Practica XP             | Como se aplica en este proyecto                              |
+|-------------------------|--------------------------------------------------------------|
+| TDD                     | Cada funcionalidad inicia con una prueba fallida (RED)       |
+| Pair programming        | Sesiones registradas en `docs/Semana_10/BITACORA_PAIR_PROGRAMMING.md` |
+| Releases pequenos       | MVP en 5 dias con historias priorizadas                      |
+| Diseno simple           | Sin frameworks, solo Node.js puro y Jest                     |
+| Propiedad colectiva     | Cualquier integrante puede modificar cualquier archivo       |
+| Integracion continua    | `npm test` como verificacion antes de cada commit            |
+
+---
+
+## Estructura del repositorio
 
 ```text
 IngenioSnack/
-├── README.md
+├── src/
+│   ├── models/
+│   │   ├── Producto.js          # Modelo de producto del menu
+│   │   ├── Estudiante.js        # Modelo de estudiante
+│   │   ├── Pedido.js            # Modelo de pedido con estados
+│   │   └── ItemPedido.js        # Item individual dentro de un pedido
+│   ├── services/
+│   │   ├── menuService.js       # HU-01, HU-04: gestion del menu
+│   │   ├── pedidoService.js     # HU-02, HU-03: creacion y estados de pedidos
+│   │   └── fidelidadService.js  # HU-05: puntos de fidelidad
+│   ├── data/
+│   │   └── memoria.js           # Almacenamiento temporal en memoria (MVP)
+│   └── app.js                   # Punto de entrada + pantalla principal del menu
+├── tests/
+│   ├── menuService.test.js      # Tests HU-01
+│   ├── pedidoService.test.js    # Tests HU-02, HU-03
+│   └── fidelidadService.test.js # Tests HU-05
 ├── docs/
-│   ├── 01_levantamiento_requerimientos.md
-│   ├── 02_historias_usuario.md
-│   ├── 03_backlog_iteracion_1.md
-│   ├── 04_tarjetas_crc.md
-│   └── 05_evidencia_github.md
-└── .github/
-    └── ISSUE_TEMPLATE/
-        └── historia_usuario.md
+│   ├── Semana_10/
+│   │   ├── PLAN_SPRINT_MVP_5_DIAS.md
+│   │   ├── BITACORA_PAIR_PROGRAMMING.md
+│   │   ├── REFACTORIZACION.md
+│   │   └── EVIDENCIAS_TDD/      # Capturas RED - GREEN - REFACTOR
+│   └── ...                      # Documentacion Semanas anteriores
+├── package.json
+└── .gitignore
 ```
 
-## Enfoque XP aplicado
+---
 
-El trabajo se centra en el **Planning Game inicial**. Se prioriza la comunicacion con el cliente, la simplicidad, el valor de negocio y la entrega incremental. No se incluyen funcionalidades que el cliente no solicito para esta iteracion, como pasarelas de pago, delivery o sistemas complejos de inventario.
+## Historias priorizadas para Semana 10
 
-## Alcance de la Iteracion 1
+| ID    | Historia                                         | Prioridad | Estimacion | Estado     |
+|-------|--------------------------------------------------|-----------|------------|------------|
+| HU-01 | Como estudiante quiero ver el menu disponible    | Alta      | 2 pts      | GREEN ✅   |
+| HU-02 | Como estudiante quiero crear un pedido           | Alta      | 5 pts      | Pendiente  |
+| HU-03 | Como cafetero quiero cambiar estado de pedido    | Media     | 3 pts      | Pendiente  |
+| HU-04 | Como cafetero quiero actualizar disponibilidad   | Alta      | 3 pts      | GREEN ✅   |
+| HU-05 | Como estudiante quiero acumular puntos           | Media     | 3 pts      | Pendiente  |
 
-La Iteracion 1 tiene una capacidad maxima de **20 puntos de historia**. Por ello, se priorizan las funcionalidades esenciales para resolver el problema principal:
+---
 
-1. Registro e identificacion del estudiante.
-2. Consulta del menu disponible.
-3. Registro de pedido anticipado.
-4. Validacion de disponibilidad de ingredientes.
-5. Gestion rapida de disponibilidad de productos por parte del Sr. Julio.
+## Comandos rapidos
+
+```bash
+# Instalar dependencias
+npm install
+
+# Ejecutar el sistema (pantalla principal del menu)
+npm start
+
+# Ejecutar todas las pruebas
+npm test
+
+# Ejecutar pruebas en modo watch (desarrollo)
+npm run test:watch
+
+# Ver cobertura de pruebas
+npm run test:coverage
+```
+
+---
+
+## Estado del ciclo TDD — Dia 1
+
+```
+menuService — registrarProducto():             VERDE ✅
+menuService — listarProductos():               VERDE ✅
+menuService — listarProductosDisponibles():    VERDE ✅ (fase GREEN completada)
+menuService — cambiarDisponibilidadProducto(): VERDE ✅
+```
+
+La evidencia del ciclo RED-GREEN-REFACTOR se encuentra en:
+`docs/Semana_10/EVIDENCIAS_TDD/`
+
+---
 
 ## Decisiones relevantes
 
 - El pago sera **contra entrega**, como indico el cliente.
 - No se implementa Yape, Plin ni tarjeta en esta primera iteracion.
-- El cafe gratis sera **cafe americano**, por ser la recompensa mencionada por el cliente.
-- El sistema identificara al estudiante mediante correo institucional o codigo universitario.
-- Si no hay ingredientes disponibles, el sistema debe avisar antes de confirmar el pedido.
+- El cafe gratis sera **cafe americano**, la recompensa mencionada por el cliente.
+- El sistema identifica al estudiante mediante correo institucional o codigo universitario.
+- Si no hay ingredientes disponibles, el sistema avisa antes de confirmar el pedido.
+
+---
 
 ## Integrantes
 
-- Integrante 1: ARTICA ARIAS GUSTAVO ALONSO 
-- Integrante 2: CHAVEZ PAQUIYAURI JACK LUIS
-- Integrante 3: FLORES CCENTE FRANKLIN DAVID
-- Integrante 4: JAYO MALLQUI ALEXSANDER ANTONI
-- Integrante 5: RAYMUNDO CONDOR FRANK ANGEL
-
-## Avance Dia 2 - Sprint 1
-
-Durante el Dia 2 se completo la implementacion minima de la historia HU-01: Consultar menu disponible.
-
-### Funcionalidades implementadas
-
-- Registro de productos del menu.
-- Listado general de productos.
-- Listado de productos disponibles.
-- Cambio de disponibilidad de productos sin eliminarlos.
-
-### Pruebas realizadas
-
-Se ejecutaron pruebas unitarias con Jest para validar que el sistema muestre unicamente productos disponibles.
-
-### Comando de pruebas
-
-```bash
-npm test
-```
-
-### Resultado
-
-Las pruebas de `menuService.test.js` pasan correctamente, cumpliendo la fase Green del ciclo TDD.
+| # | Nombre                            | Rol principal en Sprint MVP  |
+|---|-----------------------------------|------------------------------|
+| 1 | Artica Arias Gustavo Alonso       | Frontend y diseno visual      |
+| 2 | Chavez Paquiyauri Jack Luis       | Backend y logica del sistema  |
+| 3 | Flores Ccente Franklin David      | Tests, TDD y refactorizacion  |
+| 4 | Jayo Mallqui Alexsander Antoni    | Documentacion y evidencias    |
+| 5 | Raymundo Condor Frank Angel       | Integracion y soporte         |
 
 ## Estado
 

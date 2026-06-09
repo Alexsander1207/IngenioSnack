@@ -11,7 +11,7 @@ beforeEach(() => {
   memoria.productos = [];
 });
 
-test('debe registrar un producto en el menú', () => {
+test('debe registrar un producto en el menu', () => {
   const producto = registrarProducto({
     nombre: 'Sandwich de pollo',
     precio: 5,
@@ -26,39 +26,17 @@ test('debe registrar un producto en el menú', () => {
 });
 
 test('debe listar todos los productos registrados', () => {
-  registrarProducto({
-    nombre: 'Sandwich de pollo',
-    precio: 5,
-    categoria: 'Sandwich',
-    disponible: true,
-  });
+  registrarProducto({ nombre: 'Sandwich de pollo', precio: 5, categoria: 'Sandwich', disponible: true });
+  registrarProducto({ nombre: 'Empanada', precio: 4, categoria: 'Snack', disponible: false });
 
-  registrarProducto({
-    nombre: 'Empanada',
-    precio: 4,
-    categoria: 'Snack',
-    disponible: false,
-  });
-
-  const productos = listarProductos();
-
-  expect(productos).toHaveLength(2);
+  expect(listarProductos()).toHaveLength(2);
 });
 
-test('debe listar solo los productos disponibles', () => {
+// HU-01: prueba central — filtra arreglo recibido como argumento
+test('debe listar solo los productos disponibles del menu', () => {
   const productos = [
-    {
-      nombre: 'Sandwich de pollo',
-      precio: 5,
-      categoria: 'Sandwich',
-      disponible: true,
-    },
-    {
-      nombre: 'Empanada',
-      precio: 4,
-      categoria: 'Snack',
-      disponible: false,
-    },
+    { nombre: 'Sandwich de pollo', precio: 5, categoria: 'Sandwich', disponible: true },
+    { nombre: 'Empanada', precio: 4, categoria: 'Snack', disponible: false },
   ];
 
   const resultado = listarProductosDisponibles(productos);
@@ -67,20 +45,9 @@ test('debe listar solo los productos disponibles', () => {
   expect(resultado[0].nombre).toBe('Sandwich de pollo');
 });
 
-test('debe excluir productos no disponibles del menú visible', () => {
-  registrarProducto({
-    nombre: 'Cafe americano',
-    precio: 3,
-    categoria: 'Bebida',
-    disponible: true,
-  });
-
-  registrarProducto({
-    nombre: 'Pan con pollo',
-    precio: 6,
-    categoria: 'Sandwich',
-    disponible: false,
-  });
+test('debe excluir productos no disponibles del menu visible', () => {
+  registrarProducto({ nombre: 'Cafe americano', precio: 3, categoria: 'Bebida', disponible: true });
+  registrarProducto({ nombre: 'Pan con pollo', precio: 6, categoria: 'Sandwich', disponible: false });
 
   const disponibles = listarProductosDisponibles();
 
@@ -89,12 +56,7 @@ test('debe excluir productos no disponibles del menú visible', () => {
 });
 
 test('debe cambiar la disponibilidad de un producto sin eliminarlo', () => {
-  const producto = registrarProducto({
-    nombre: 'Triple',
-    precio: 5,
-    categoria: 'Sandwich',
-    disponible: true,
-  });
+  const producto = registrarProducto({ nombre: 'Triple', precio: 5, categoria: 'Sandwich', disponible: true });
 
   const actualizado = cambiarDisponibilidadProducto(producto.id, false);
 

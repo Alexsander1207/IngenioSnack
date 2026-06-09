@@ -1,44 +1,61 @@
 /**
  * app.js
- * Demostracion por consola del Dia 2 (HU-01: Consultar menu disponible).
- * Carga productos de ejemplo y muestra unicamente los que estan disponibles.
+ * Punto de entrada del MVP. Muestra la pantalla principal de IngenioSnack
+ * con el menu disponible (HU-01).
  *
  * Ejecutar con: npm start
  */
 const {
   registrarProducto,
+  listarProductos,
   listarProductosDisponibles,
 } = require('./services/menuService');
 
-registrarProducto({
-  nombre: 'Sandwich de pollo',
-  precio: 5,
-  categoria: 'Sandwich',
-  disponible: true,
-});
+// ─────────────────────────────────────────────
+//  PANTALLA PRINCIPAL — Diseño movil en consola
+//  Vista pensada para consulta desde celular
+// ─────────────────────────────────────────────
 
-registrarProducto({
-  nombre: 'Cafe americano',
-  precio: 3,
-  categoria: 'Bebida',
-  disponible: true,
-});
+function mostrarPantallaPrincipal(productos) {
+  const linea = '─'.repeat(36);
 
-registrarProducto({
-  nombre: 'Empanada',
-  precio: 4,
-  categoria: 'Snack',
-  disponible: false,
-});
+  console.log('\n' + '═'.repeat(36));
+  console.log('       ☕  IngenioSnack  ☕');
+  console.log('   Cafeteria - Laboratorios UNCP');
+  console.log('═'.repeat(36));
+  console.log('  📋 MENU DISPONIBLE');
+  console.log(linea);
 
-const productosDisponibles = listarProductosDisponibles();
+  const categorias = [...new Set(productos.map((p) => p.categoria))];
 
-console.log('Productos disponibles:');
+  for (const categoria of categorias) {
+    console.log(`\n  [${categoria.toUpperCase()}]`);
+    const items = productos.filter((p) => p.categoria === categoria);
+    for (const p of items) {
+      const estado = p.disponible ? '✅' : '❌ AGOTADO';
+      const precio = `S/ ${p.precio.toFixed(2)}`;
+      console.log(`  ${estado}  ${p.nombre.padEnd(18)} ${precio}`);
+    }
+  }
 
-if (productosDisponibles.length === 0) {
-  console.log('No hay productos disponibles en este momento.');
-} else {
-  productosDisponibles.forEach((producto) => {
-    console.log(`- ${producto.nombre} | S/ ${producto.precio.toFixed(2)} | ${producto.categoria}`);
-  });
+  console.log('\n' + linea);
+  console.log('  💡 Haz tu pedido antes de salir');
+  console.log('     de clase y evita las filas.');
+  console.log('═'.repeat(36) + '\n');
 }
+
+registrarProducto({ nombre: 'Sandwich de pollo', precio: 5, categoria: 'Sandwich', disponible: true });
+registrarProducto({ nombre: 'Cafe americano',    precio: 3, categoria: 'Bebida',   disponible: true });
+registrarProducto({ nombre: 'Empanada',          precio: 4, categoria: 'Snack',    disponible: false });
+registrarProducto({ nombre: 'Jugo de naranja',   precio: 4, categoria: 'Bebida',   disponible: true });
+registrarProducto({ nombre: 'Galletas',          precio: 2, categoria: 'Snack',    disponible: true });
+
+mostrarPantallaPrincipal(listarProductos());
+
+const disponibles = listarProductosDisponibles();
+console.log(`Productos disponibles: ${disponibles.length}`);
+disponibles.forEach((p) => {
+  console.log(`  - ${p.nombre} | S/ ${p.precio.toFixed(2)} | ${p.categoria}`);
+});
+
+module.exports = { mostrarPantallaPrincipal };

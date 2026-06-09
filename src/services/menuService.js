@@ -51,17 +51,13 @@ function listarProductosDisponibles(productos = memoria.productos) {
  */
 function cambiarDisponibilidadProducto(id, disponible) {
   const producto = memoria.productos.find((p) => p.id === id);
-
-  if (!producto) {
-    return null;
-  }
-
+  if (!producto) return null;
   producto.disponible = disponible;
   return producto;
 }
 
 /**
- * Busca un producto por su id. (Usado por el servicio de pedidos - Dia 3).
+ * Busca un producto por su id.
  * @param {string|number} id
  * @returns {Producto|undefined}
  */
@@ -71,10 +67,9 @@ function obtenerProducto(id) {
 
 module.exports = {
   registrarProducto,
+  agregarProducto: registrarProducto,
   listarProductos,
   listarProductosDisponibles,
   cambiarDisponibilidadProducto,
   obtenerProducto,
-  // Alias de compatibilidad con el esqueleto del Dia 1.
-  agregarProducto: registrarProducto,
 };
