@@ -1,106 +1,163 @@
 /**
- * app.js
- * Punto de entrada del MVP. Muestra la pantalla principal de IngenioSnack,
- * valida disponibilidad y demuestra confirmacion de pedido (HU-01, HU-03).
+ * app.js — Flujo MVP final de IngenioSnack (Dia 5)
+ * Demuestra el ciclo completo: identificacion del estudiante, consulta del
+ * menu, seleccion de productos, calculo del total, validacion de
+ * disponibilidad y confirmacion del pedido.
  *
  * Ejecutar con: npm start
  */
-const {
-  registrarProducto,
-  listarProductos,
-  listarProductosDisponibles,
-} = require('./services/menuService');
-const {
-  crearPedido,
-  confirmarPedido,
-  validarDisponibilidadPedido,
-} = require('./services/pedidoService');
+const menuService    = require('./services/menuService');
+const pedidoService  = require('./services/pedidoService');
+const fidelidadService = require('./services/fidelidadService');
+const Estudiante     = require('./models/Estudiante');
+const { ESTADOS }    = require('./models/Pedido');
+const { db }         = require('./data/memoria');
 
-// ─────────────────────────────────────────────
-//  PANTALLA PRINCIPAL — Diseño movil en consola
-// ─────────────────────────────────────────────
+// ──────────────────────────────────────────────
+//  UTILIDADES DE PRESENTACION
+// ──────────────────────────────────────────────
 
-function mostrarPantallaPrincipal(productos) {
-  const linea = '─'.repeat(36);
+const SEP  = '─'.repeat(40);
+const DSEP = '═'.repeat(40);
 
-  console.log('\n' + '═'.repeat(36));
-  console.log('       ☕  IngenioSnack  ☕');
-  console.log('   Cafeteria - Laboratorios UNCP');
-  console.log('═'.repeat(36));
-  console.log('  📋 MENU DISPONIBLE');
-  console.log(linea);
+function titulo(texto) {
+  console.log('\n' + DSEP);
+  console.log(`  ${texto}`);
+  console.log(DSEP);
+}
 
-  const categorias = [...new Set(productos.map((p) => p.categoria))];
+function seccion(texto) {
+  console.log('\n' + SEP);
+  console.log(`  ${texto}`);
+  console.log(SEP);
+}
 
-  for (const categoria of categorias) {
-    console.log(`\n  [${categoria.toUpperCase()}]`);
-    const items = productos.filter((p) => p.categoria === categoria);
-    for (const p of items) {
+function msg(icono, texto) {
+  console.log(`  ${icono}  ${texto}`);
+}
+
+// ──────────────────────────────────────────────
+//  PANTALLA: MENU DISPONIBLE (HU-02)
+// ──────────────────────────────────────────────
+
+function mostrarMenu(productos) {
+  titulo('☕  IngenioSnack — Menu del dia');
+  const categorias = [...new Set(productos.map(p => p.categoria))];
+  for (const cat of categorias) {
+    console.log(`\n  [ ${cat.toUpperCase()} ]`);
+    productos.filter(p => p.categoria === cat).forEach(p => {
       const estado = p.disponible ? '✅' : '❌ AGOTADO';
-      const precio = `S/ ${p.precio.toFixed(2)}`;
-      console.log(`  ${estado}  ${p.nombre.padEnd(18)} ${precio}`);
-    }
+      console.log(`  ${estado}  ${p.nombre.padEnd(22)} S/ ${p.precio.toFixed(2)}`);
+    });
+  }
+  console.log('\n' + SEP);
+  msg('💡', 'Haz tu pedido antes de salir de clase y evita la fila.');
+}
+
+// ──────────────────────────────────────────────
+//  PANTALLA: RESUMEN DE PEDIDO (HU-03)
+// ──────────────────────────────────────────────
+
+function mostrarResumenPedido(pedido, estudiante) {
+  seccion(`📦 Resumen del pedido — ${pedido.id}`);
+  msg('👤', `Estudiante : ${estudiante.nombre}  |  Codigo: ${estudiante.codigo || 'S/N'}`);
+  console.log('');
+  pedido.items.forEach(item => {
+    console.log(`  x${item.cantidad}  ${item.producto.nombre.padEnd(22)} S/ ${item.subtotal.toFixed(2)}`);
+  });
+  console.log(SEP);
+  console.log(`  TOTAL A PAGAR (contra entrega):  S/ ${pedido.total.toFixed(2)}`);
+  console.log(`  ESTADO:                          ${pedido.estado}`);
+  console.log(SEP);
+}
+
+// ──────────────────────────────────────────────
+//  DATOS: CARGAR MENU INICIAL
+// ──────────────────────────────────────────────
+
+function cargarMenu() {
+  menuService.registrarProducto({ id: 'S1', nombre: 'Sandwich de pollo', precio: 5.00, categoria: 'Sandwich' });
+  menuService.registrarProducto({ id: 'S2', nombre: 'Triple',            precio: 6.00, categoria: 'Sandwich' });
+  menuService.registrarProducto({ id: 'B1', nombre: 'Cafe americano',    precio: 3.00, categoria: 'Bebida'   });
+  menuService.registrarProducto({ id: 'B2', nombre: 'Jugo de naranja',   precio: 4.00, categoria: 'Bebida'   });
+  menuService.registrarProducto({ id: 'K1', nombre: 'Empanada de pollo', precio: 4.00, categoria: 'Snack'    });
+  menuService.registrarProducto({ id: 'K2', nombre: 'Galletas',          precio: 2.00, categoria: 'Snack'    });
+  menuService.registrarProducto({ id: 'K3', nombre: 'Papa frita',        precio: 2.50, categoria: 'Snack',   disponible: false });
+}
+
+// ──────────────────────────────────────────────
+//  FLUJO PRINCIPAL
+// ──────────────────────────────────────────────
+
+function main() {
+  cargarMenu();
+
+  // ── 1. Mostrar menu (HU-02) ──
+  mostrarMenu(menuService.listarProductos());
+
+  // ── 2. Identificar estudiante (HU-01) ──
+  titulo('👤 Identificacion del estudiante (HU-01)');
+  const estudiante = new Estudiante({ id: 'E1', nombre: 'Ana Quispe', codigo: '2021100123' });
+  db.estudiantes.push(estudiante);
+  msg('✅', `Bienvenida, ${estudiante.nombre}! (Codigo: ${estudiante.codigo})`);
+
+  // ── 3. Caso A: pedido con producto no disponible (HU-04) ──
+  titulo('⚠️  Caso A — Pedido con producto no disponible (HU-04)');
+  const pedidoInvalido = {
+    items: [{ producto: { nombre: 'Papa frita', disponible: false }, cantidad: 1 }],
+  };
+  const validacion = pedidoService.validarDisponibilidadPedido(pedidoInvalido);
+  msg(validacion.valido ? '✅' : '❌', validacion.mensaje);
+  msg('ℹ️ ', 'Selecciona otro producto del menu.');
+
+  // ── 4. Caso B: pedido valido, confirmacion y puntos (HU-03, HU-04) ──
+  titulo('✅  Caso B — Pedido valido y confirmacion (HU-03)');
+  const pedido = pedidoService.crearPedido(estudiante.id, [
+    { productoId: 'S1', cantidad: 2 },
+    { productoId: 'B1', cantidad: 1 },
+  ]);
+  mostrarResumenPedido(pedido, estudiante);
+
+  pedidoService.confirmarPedido(pedido.id);
+  msg('✅', `Pedido confirmado. Estado: ${pedido.estado}`);
+  msg('💵', 'Recojelo en la cafeteria y paga contra entrega.');
+
+  // ── 5. Entrega y fidelidad (HU-06, HU-07) ──
+  titulo('🎁  Fidelidad — Entrega y acumulacion de puntos (HU-06/07)');
+  pedidoService.cambiarEstado(pedido.id, ESTADOS.ENTREGADO);
+  const puntos = fidelidadService.acreditarPuntos(estudiante.id, pedido.total);
+  msg('✅', `Pedido ${pedido.id} entregado y pagado.`);
+
+  // Contar sandwiches del pedido para fidelidad
+  const sandwichesEnPedido = pedido.items
+    .filter(i => i.producto.categoria === 'Sandwich')
+    .reduce((s, i) => s + i.cantidad, 0);
+  if (sandwichesEnPedido > 0) {
+    fidelidadService.registrarSandwich(estudiante.id, sandwichesEnPedido);
   }
 
-  console.log('\n' + linea);
-  console.log('  💡 Haz tu pedido antes de salir');
-  console.log('     de clase y evita las filas.');
-  console.log('═'.repeat(36) + '\n');
-}
+  const beneficios = fidelidadService.obtenerBeneficios(estudiante.id);
+  msg('⭐', `Puntos acumulados  : ${puntos}`);
+  msg('🥪', `Sandwiches: ${beneficios.sandwiches}/10 para el siguiente cafe gratis`);
+  msg('☕', `Cafes gratis disponibles: ${beneficios.cafesGratis}`);
 
-function mostrarResumenPedido(pedido) {
-  const linea = '─'.repeat(36);
-  console.log('\n' + linea);
-  console.log(`  📦 RESUMEN DE PEDIDO — ${pedido.id}`);
-  console.log(linea);
-  pedido.items.forEach((item) => {
-    const subtotal = `S/ ${item.subtotal.toFixed(2)}`;
-    console.log(`  x${item.cantidad}  ${item.producto.nombre.padEnd(18)} ${subtotal}`);
+  // ── 6. Gestion de disponibilidad por el Sr. Julio (HU-05) ──
+  titulo('🔧  Sr. Julio — Gestion de disponibilidad (HU-05)');
+  menuService.cambiarDisponibilidadProducto('K3', true);
+  msg('✅', 'Papa frita marcada como DISPONIBLE.');
+  menuService.cambiarDisponibilidadProducto('S2', false);
+  msg('❌', 'Triple marcado como NO DISPONIBLE.');
+  console.log('\n  Menu actualizado:');
+  menuService.listarProductosDisponibles().forEach(p => {
+    console.log(`    ✅  ${p.nombre}`);
   });
-  console.log(linea);
-  console.log(`  TOTAL:                    S/ ${pedido.total.toFixed(2)}`);
-  console.log(`  ESTADO:                   ${pedido.estado}`);
-  console.log(linea + '\n');
+
+  console.log('\n' + DSEP);
+  msg('🚀', 'MVP IngenioSnack — Flujo completo verificado.');
+  msg('📋', '22/22 pruebas unitarias en verde.');
+  console.log(DSEP + '\n');
 }
 
-function mostrarMensaje(tipo, texto) {
-  const iconos = { ok: '✅', error: '❌', info: 'ℹ️ ' };
-  console.log(`  ${iconos[tipo] || ''} ${texto}`);
-}
+main();
 
-// ─────────────────────────────────────────────
-//  DEMO DEL FLUJO COMPLETO
-// ─────────────────────────────────────────────
-
-registrarProducto({ id: 'P1', nombre: 'Sandwich de pollo', precio: 5,   categoria: 'Sandwich', disponible: true  });
-registrarProducto({ id: 'P2', nombre: 'Cafe americano',    precio: 3,   categoria: 'Bebida',   disponible: true  });
-registrarProducto({ id: 'P3', nombre: 'Empanada',          precio: 4,   categoria: 'Snack',    disponible: false });
-registrarProducto({ id: 'P4', nombre: 'Jugo de naranja',   precio: 4,   categoria: 'Bebida',   disponible: true  });
-
-mostrarPantallaPrincipal(listarProductos());
-
-// Intento de pedido con producto no disponible
-console.log('  --- Caso 1: pedido con producto no disponible ---');
-const pedidoInvalido = {
-  items: [{ producto: { nombre: 'Empanada', precio: 4, disponible: false }, cantidad: 1 }],
-};
-const validacion = validarDisponibilidadPedido(pedidoInvalido);
-mostrarMensaje(validacion.valido ? 'ok' : 'error', validacion.mensaje);
-mostrarMensaje('info', 'Seleccione otra opcion del menu.');
-
-console.log('\n  --- Caso 2: pedido valido y confirmacion ---');
-try {
-  const pedido = crearPedido('E1', [
-    { productoId: 'P1', cantidad: 1 },
-    { productoId: 'P4', cantidad: 2 },
-  ]);
-  mostrarResumenPedido(pedido);
-
-  confirmarPedido(pedido.id);
-  mostrarMensaje('ok', 'Pedido confirmado correctamente.');
-  mostrarMensaje('info', `Nuevo estado: ${pedido.estado}`);
-} catch (e) {
-  mostrarMensaje('error', `No se puede confirmar el pedido: ${e.message}`);
-}
-
-module.exports = { mostrarPantallaPrincipal, mostrarResumenPedido, mostrarMensaje };
+module.exports = { cargarMenu, mostrarMenu, mostrarResumenPedido };

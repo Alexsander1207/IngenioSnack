@@ -1,33 +1,48 @@
-# IngenioSnack
+# IngenioSnack — MVP Final
 
 Sistema de pedidos anticipados para la cafeteria **IngenioSnack**, ubicada al costado
 de los laboratorios de la Facultad de Ingenieria de Sistemas de la UNCP.
 
 **Asignatura:** Metodologia de Desarrollo de Software (IS055B) — Unidad II: XP
-**Sprint activo:** MVP 5 dias — Semana 10
+**Sprint:** MVP 5 dias — Semana 10 — **ENTREGADO**
 
 ---
 
-## Objetivo del proyecto
+## Descripcion del proyecto
 
-Resolver la acumulacion de estudiantes durante el recreo permitiendo realizar pedidos
-anticipados desde el celular, recogerlos rapidamente y pagar contra entrega.
-
-El cliente, el Sr. Julio, solicita una solucion simple que permita a los estudiantes
-hacer pedidos antes de salir de clase, evitando filas largas y perdida de tiempo.
+**IngenioSnack** resuelve el problema de acumulacion de estudiantes durante el recreo.
+Los estudiantes realizan pedidos anticipados desde su celular antes de salir de clase,
+los recogen rapidamente y pagan contra entrega, eliminando las filas y la perdida de tiempo.
 
 ---
 
 ## Metodologia XP aplicada
 
-| Practica XP             | Como se aplica en este proyecto                              |
-|-------------------------|--------------------------------------------------------------|
-| TDD                     | Cada funcionalidad inicia con una prueba fallida (RED)       |
-| Pair programming        | Sesiones registradas en `docs/Semana_10/BITACORA_PAIR_PROGRAMMING.md` |
-| Releases pequenos       | MVP en 5 dias con historias priorizadas                      |
-| Diseno simple           | Sin frameworks, solo Node.js puro y Jest                     |
-| Propiedad colectiva     | Cualquier integrante puede modificar cualquier archivo       |
-| Integracion continua    | `npm test` como verificacion antes de cada commit            |
+| Practica XP             | Evidencia en este proyecto                                    |
+|-------------------------|---------------------------------------------------------------|
+| **TDD**                 | Ciclo Red-Green-Refactor documentado en `EVIDENCIAS_TDD/`    |
+| **Pair programming**    | 7 sesiones en `BITACORA_PAIR_PROGRAMMING.md`                 |
+| **Releases pequeños**   | MVP funcional en 5 dias                                       |
+| **Diseño simple**       | Sin frameworks, solo Node.js puro y Jest                      |
+| **Propiedad colectiva** | Cualquier integrante modifica cualquier archivo               |
+| **Integracion continua**| `npm test` ejecutado en cada commit                           |
+| **Refactorizacion**     | 4 refactors documentados en `REFACTORIZACION.md`              |
+
+---
+
+## Historias de usuario implementadas
+
+| ID    | Historia                                          | Prioridad | Estimacion | Estado     |
+|-------|---------------------------------------------------|-----------|------------|------------|
+| HU-01 | Identificacion del estudiante                     | Alta      | 3 pts      | ✅ Cerrada |
+| HU-02 | Consulta del menu disponible                      | Alta      | 3 pts      | ✅ Cerrada |
+| HU-03 | Pedido anticipado desde celular                   | Alta      | 5 pts      | ✅ Cerrada |
+| HU-04 | Validacion de disponibilidad antes de confirmar   | Alta      | 5 pts      | ✅ Cerrada |
+| HU-05 | Gestion rapida de disponibilidad (Sr. Julio)      | Alta      | 4 pts      | ✅ Cerrada |
+| HU-06 | Pago contra entrega y cambio de estado            | Alta      | 3 pts      | ✅ Cerrada |
+| HU-07 | Registro de sandwiches para fidelidad             | Media     | 5 pts      | ✅ Cerrada |
+
+**Historias para siguiente iteracion:** HU-08 (productos mas vendidos), HU-09 (lista pedidos pendientes), interfaz web, base de datos real.
 
 ---
 
@@ -37,105 +52,120 @@ hacer pedidos antes de salir de clase, evitando filas largas y perdida de tiempo
 IngenioSnack/
 ├── src/
 │   ├── models/
-│   │   ├── Producto.js          # Modelo de producto del menu
-│   │   ├── Estudiante.js        # Modelo de estudiante
-│   │   ├── Pedido.js            # Modelo de pedido con estados
-│   │   └── ItemPedido.js        # Item individual dentro de un pedido
+│   │   ├── Producto.js          - id, nombre, precio, categoria, disponible
+│   │   ├── Estudiante.js        - id, nombre, codigo, correo, puntos, sandwiches, cafesGratis
+│   │   ├── Pedido.js            - id, estudianteId, items, estado, fecha, total (getter)
+│   │   └── ItemPedido.js        - producto, cantidad, subtotal (getter)
 │   ├── services/
-│   │   ├── menuService.js       # HU-01, HU-04: gestion del menu
-│   │   ├── pedidoService.js     # HU-02, HU-03: creacion y estados de pedidos
-│   │   └── fidelidadService.js  # HU-05: puntos de fidelidad
+│   │   ├── menuService.js       - HU-02, HU-05: registrar, listar, cambiar disponibilidad
+│   │   ├── pedidoService.js     - HU-03, HU-04, HU-06: crear, validar, confirmar, entregar
+│   │   └── fidelidadService.js  - HU-07: puntos, sandwiches, cafes gratis
 │   ├── data/
-│   │   └── memoria.js           # Almacenamiento temporal en memoria (MVP)
-│   └── app.js                   # Punto de entrada + pantalla principal del menu
+│   │   └── memoria.js           - almacenamiento en memoria para el MVP
+│   └── app.js                   - flujo MVP completo (demo ejecutable)
 ├── tests/
-│   ├── menuService.test.js      # Tests HU-01
-│   ├── pedidoService.test.js    # Tests HU-02, HU-03
-│   └── fidelidadService.test.js # Tests HU-05
+│   ├── menuService.test.js      - 5 tests: HU-02, HU-05
+│   ├── pedidoService.test.js    - 12 tests: HU-03, HU-04, HU-06
+│   └── fidelidadService.test.js - 5 tests: HU-07
 ├── docs/
-│   ├── Semana_10/
-│   │   ├── PLAN_SPRINT_MVP_5_DIAS.md
-│   │   ├── BITACORA_PAIR_PROGRAMMING.md
-│   │   ├── REFACTORIZACION.md
-│   │   └── EVIDENCIAS_TDD/      # Capturas RED - GREEN - REFACTOR
-│   └── ...                      # Documentacion Semanas anteriores
+│   └── Semana_10/
+│       ├── PLAN_SPRINT_MVP_5_DIAS.md
+│       ├── BITACORA_PAIR_PROGRAMMING.md  (7 sesiones documentadas)
+│       ├── REFACTORIZACION.md            (4 refactors con antes/despues)
+│       └── EVIDENCIAS_TDD/
+│           ├── 01_red_test_fallando.png
+│           ├── 02_green_test_pasando.png
+│           └── 03_refactor_codigo_limpio.png
 ├── package.json
 └── .gitignore
 ```
 
 ---
 
-## Historias priorizadas para Semana 10
+## Tecnologias utilizadas
 
-| ID    | Historia                                         | Prioridad | Estimacion | Estado     |
-|-------|--------------------------------------------------|-----------|------------|------------|
-| HU-01 | Como estudiante quiero ver el menu disponible    | Alta      | 2 pts      | GREEN ✅   |
-| HU-02 | Como estudiante quiero crear un pedido           | Alta      | 5 pts      | GREEN ✅   |
-| HU-03 | Como cafetero quiero validar disponibilidad      | Alta      | 3 pts      | GREEN ✅   |
-| HU-04 | Como cafetero quiero actualizar disponibilidad   | Alta      | 3 pts      | GREEN ✅   |
-| HU-05 | Como estudiante quiero acumular puntos           | Media     | 3 pts      | GREEN ✅   |
+| Herramienta | Version  | Uso                                  |
+|-------------|----------|--------------------------------------|
+| Node.js     | v22.x    | Runtime del servidor                 |
+| Jest        | ^29.7.0  | Framework de pruebas unitarias (TDD) |
+| JavaScript  | ES2020   | Lenguaje principal                   |
 
 ---
 
-## Comandos rapidos
+## Comandos de ejecucion
 
 ```bash
 # Instalar dependencias
 npm install
 
-# Ejecutar el sistema (pantalla principal del menu)
+# Ejecutar el MVP completo (flujo demo)
 npm start
 
 # Ejecutar todas las pruebas
 npm test
 
-# Ejecutar pruebas en modo watch (desarrollo)
+# Pruebas en modo watch (desarrollo)
 npm run test:watch
 
-# Ver cobertura de pruebas
+# Cobertura de pruebas
 npm run test:coverage
 ```
 
 ---
 
-## Estado del ciclo TDD — Dia 4
+## Estado final del MVP — Dia 5
 
 ```
-menuService  — registrarProducto():             VERDE ✅
-menuService  — listarProductosDisponibles():    VERDE ✅
-menuService  — cambiarDisponibilidadProducto(): VERDE ✅
-pedidoService — crearPedido():                  VERDE ✅
-pedidoService — validarDisponibilidadPedido():  VERDE ✅  (Dia 4)
-pedidoService — confirmarPedido():              VERDE ✅  (Dia 4)
-pedidoService — calcularTotalPedido():          VERDE ✅  (Dia 4 - Refactor)
-fidelidadService — acreditarPuntos():           VERDE ✅
-fidelidadService — canjearPuntos():             VERDE ✅
+Tests: 22/22 en verde ✅
+
+menuService
+  ✅ registrarProducto
+  ✅ listarProductos
+  ✅ listarProductosDisponibles
+  ✅ cambiarDisponibilidadProducto
+
+pedidoService
+  ✅ crearPedido (con validacion de disponibilidad)
+  ✅ validarDisponibilidadPedido
+  ✅ confirmarPedido
+  ✅ cambiarEstado (PENDIENTE → CONFIRMADO → EN_PREPARACION → LISTO → ENTREGADO)
+  ✅ calcularTotalPedido
+  ✅ calcularSubtotal
+  ✅ agregarItemPedido
+
+fidelidadService
+  ✅ acreditarPuntos (1 punto por cada S/ 1 gastado)
+  ✅ canjearPuntos
+  ✅ registrarSandwich (10 sandwiches = 1 cafe gratis)
+  ✅ obtenerBeneficios
+  ✅ canjearCafeGratis
 ```
 
-La evidencia del ciclo RED-GREEN-REFACTOR se encuentra en:
-`docs/Semana_10/EVIDENCIAS_TDD/`
+### Regla de negocio central (HU-04)
 
-### Regla de negocio implementada (HU-03)
+Solo se puede confirmar un pedido si **todos** los productos tienen `disponible: true`.
+Si alguno esta agotado: *"El pedido contiene productos no disponibles"*.
 
-Solo se puede confirmar un pedido si **todos** los productos seleccionados
-tienen `disponible: true`. Si alguno esta agotado, el sistema bloquea la
-confirmacion con el mensaje: *"El pedido contiene productos no disponibles"*.
+### Programa de fidelidad (HU-07)
+
+- 1 punto de fidelidad por cada S/ 1 gastado en pedidos entregados.
+- Cada 10 sandwiches comprados y entregados: 1 cafe americano gratis.
+- El contador se reinicia automaticamente al canjear el beneficio.
 
 ---
 
 ## Decisiones relevantes
 
-- El pago sera **contra entrega**, como indico el cliente.
-- No se implementa Yape, Plin ni tarjeta en esta primera iteracion.
-- El cafe gratis sera **cafe americano**, la recompensa mencionada por el cliente.
-- El sistema identifica al estudiante mediante correo institucional o codigo universitario.
-- Si no hay ingredientes disponibles, el sistema avisa antes de confirmar el pedido.
+- Pago **contra entrega** — sin integracion bancaria en esta iteracion.
+- **Cafe americano gratis** es la recompensa (mencionada expresamente por el cliente).
+- Identificacion por **codigo universitario** o correo institucional.
+- Almacenamiento **en memoria** (MVP sin base de datos).
 
 ---
 
 ## Integrantes
 
-| # | Nombre                            | Rol principal en Sprint MVP  |
+| # | Nombre                            | Rol principal                |
 |---|-----------------------------------|------------------------------|
 | 1 | Artica Arias Gustavo Alonso       | Frontend y diseno visual      |
 | 2 | Chavez Paquiyauri Jack Luis       | Backend y logica del sistema  |
@@ -143,6 +173,6 @@ confirmacion con el mensaje: *"El pedido contiene productos no disponibles"*.
 | 4 | Jayo Mallqui Alexsander Antoni    | Documentacion y evidencias    |
 | 5 | Raymundo Condor Frank Angel       | Integracion y soporte         |
 
-## Estado
+---
 
-Practica desarrollada para entrega academica en ADESA y evidencia en GitHub.
+*Practica desarrollada para entrega academica en ADESA — IS055B UNCP FIS*

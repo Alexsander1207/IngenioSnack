@@ -12,12 +12,14 @@ class Estudiante {
    * @param {string} [datos.correo] Correo institucional (opcional).
    * @param {number} [datos.puntos=0] Puntos de fidelidad acumulados.
    */
-  constructor({ id, nombre, codigo = null, correo = null, puntos = 0 }) {
+  constructor({ id, nombre, codigo = null, correo = null, puntos = 0, sandwiches = 0, cafesGratis = 0 }) {
     this.id = id;
     this.nombre = nombre;
     this.codigo = codigo;
     this.correo = correo;
     this.puntos = puntos;
+    this.sandwiches = sandwiches;
+    this.cafesGratis = cafesGratis;
   }
 }
 

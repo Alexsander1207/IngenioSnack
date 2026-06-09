@@ -60,9 +60,56 @@ function canjearPuntos(estudianteId, puntos) {
   return estudiante.puntos;
 }
 
+const SANDWICHES_PARA_CAFE = 10;
+
+/**
+ * Registra sandwiches comprados. Cada 10 genera un cafe americano gratis (HU-07).
+ * @param {string} estudianteId
+ * @param {number} [cantidad=1]
+ */
+function registrarSandwich(estudianteId, cantidad = 1) {
+  const estudiante = obtenerEstudiante(estudianteId);
+  estudiante.sandwiches += cantidad;
+  const cafesNuevos = Math.floor(estudiante.sandwiches / SANDWICHES_PARA_CAFE);
+  if (cafesNuevos > 0) {
+    estudiante.cafesGratis += cafesNuevos;
+    estudiante.sandwiches = estudiante.sandwiches % SANDWICHES_PARA_CAFE;
+  }
+  return { sandwiches: estudiante.sandwiches, cafesGratis: estudiante.cafesGratis };
+}
+
+/**
+ * Retorna el resumen de beneficios del estudiante.
+ * @param {string} estudianteId
+ */
+function obtenerBeneficios(estudianteId) {
+  const e = obtenerEstudiante(estudianteId);
+  return {
+    puntos: e.puntos,
+    sandwiches: e.sandwiches,
+    cafesGratis: e.cafesGratis,
+    sandwichesParaSiguienteCafe: SANDWICHES_PARA_CAFE - e.sandwiches,
+  };
+}
+
+/**
+ * Canjea un cafe gratis del estudiante.
+ * @param {string} estudianteId
+ */
+function canjearCafeGratis(estudianteId) {
+  const estudiante = obtenerEstudiante(estudianteId);
+  if (estudiante.cafesGratis <= 0) throw new Error('No tienes cafes gratis disponibles.');
+  estudiante.cafesGratis -= 1;
+  return { cafesGratis: estudiante.cafesGratis };
+}
+
 module.exports = {
   calcularPuntos,
   acreditarPuntos,
   canjearPuntos,
+  registrarSandwich,
+  obtenerBeneficios,
+  canjearCafeGratis,
   SOLES_POR_PUNTO,
+  SANDWICHES_PARA_CAFE,
 };

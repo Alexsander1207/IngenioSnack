@@ -127,6 +127,40 @@ verde (total = S/ 13.00 para el caso de prueba), cumpliendo la fase Green del ci
 
 ---
 
+### Sesion 6 — Dia 5 | Pareja Backend + Tests (Cierre MVP)
+
+| Campo          | Detalle                                                                          |
+|----------------|----------------------------------------------------------------------------------|
+| Fecha          | 09/06/2026                                                                       |
+| Hora inicio    | 08:00                                                                            |
+| Duracion       | 2 horas                                                                          |
+| Driver         | Integrante 2 — Chavez Paquiyauri Jack Luis                                       |
+| Navigator      | Integrante 3 — Flores Ccente Franklin David                                      |
+| Historia/Tarea | Integracion final — HU-01, HU-02, HU-03, HU-04, HU-05, HU-06, HU-07            |
+| Objetivo       | Revisar e integrar todos los servicios, agregar registro de sandwiches (HU-07), ejecutar pruebas finales |
+| Resultado      | `Estudiante.js` con campos `sandwiches` y `cafesGratis`. `fidelidadService.js` con `registrarSandwich`, `obtenerBeneficios`, `canjearCafeGratis`. 22/22 pruebas en verde. Flujo MVP completo verificado en `app.js`. |
+| Aprendizajes   | La integracion final revela dependencias entre servicios que se resuelven mejor con funciones explicitas que con efectos secundarios. El diseño simple de XP facilita esta integracion. |
+| Pendientes     | Ninguno. MVP cerrado y listo para entrega.                                       |
+
+---
+
+### Sesion 7 — Dia 5 | Pareja Frontend + Documentacion (Cierre MVP)
+
+| Campo          | Detalle                                                                          |
+|----------------|----------------------------------------------------------------------------------|
+| Fecha          | 09/06/2026                                                                       |
+| Hora inicio    | 08:00                                                                            |
+| Duracion       | 2 horas                                                                          |
+| Driver         | Integrante 1 — Artica Arias Gustavo Alonso                                       |
+| Navigator      | Integrante 4 — Jayo Mallqui Alexsander Antoni                                    |
+| Historia/Tarea | Integracion visual final + documentacion de cierre                               |
+| Objetivo       | `app.js` con flujo completo legible, README final para entrega, bitacora completa |
+| Resultado      | `app.js` muestra el ciclo completo: menu, identificacion, validacion, confirmacion, entrega y fidelidad. README actualizado con estado final de todas las HU, tecnologias y comandos. Repositorio listo para entrega en ADESA. |
+| Aprendizajes   | Documentar al mismo tiempo que se desarrolla es mas eficiente que hacerlo al final. La bitacora sirve como evidencia del proceso XP, no solo del resultado. |
+| Pendientes     | Tomar capturas de pantalla para EVIDENCIAS_TDD y subir al repositorio.           |
+
+---
+
 ## Plantilla para sesiones futuras
 
 | Campo            | Detalle |
