@@ -100,4 +100,17 @@ describe('pedidoService', () => {
     ];
     expect(pedidoService.calcularTotalPedido(items)).toBe(13);
   });
+
+  // --- HU-02: funciones de pedido del Dia 3 ---
+
+  test('calcularSubtotal calcula precio unitario por cantidad', () => {
+    expect(pedidoService.calcularSubtotal({ precioUnitario: 5, cantidad: 2 })).toBe(10);
+  });
+
+  test('agregarItemPedido agrega una linea a un pedido existente', () => {
+    const pedido = pedidoService.crearPedido('E1', [{ productoId: 'P1', cantidad: 1 }]);
+    pedidoService.agregarItemPedido(pedido, { nombre: 'Jugo', precio: 4 }, 2);
+    expect(pedido.items).toHaveLength(2);
+    expect(pedido.total).toBe(3.5 + 4 * 2);
+  });
 });

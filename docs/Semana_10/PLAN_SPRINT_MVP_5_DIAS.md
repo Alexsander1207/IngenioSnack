@@ -56,3 +56,23 @@ TDD y pair programming.
 ### Estado
 
 Dia 2 completado.
+
+## Avance Dia 3
+
+### Historia trabajada
+
+- HU-02: Realizar pedido anticipado.
+- HU-06: Identificar estudiante para pedidos.
+- HU-03 parcial: Validar disponibilidad antes de confirmar.
+
+### Tareas cerradas
+
+- Modelos Estudiante (con correo), ItemPedido y Pedido en uso.
+- Servicio de pedidos con crearPedido, agregarItemPedido, calcularSubtotal y
+  calcularTotalPedido.
+- Prueba unitaria de calculo total en verde.
+- README y bitacora actualizados.
+
+### Estado
+
+Dia 3 completado.

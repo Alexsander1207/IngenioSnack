@@ -17,14 +17,38 @@ function generarId() {
 }
 
 /**
- * Calcula el total de un pedido a partir de sus items.
- * @param {{ precioUnitario: number, cantidad: number }[]} itemsPedido
+ * Calcula el subtotal de una linea de pedido (HU-02).
+ * Acepta items con `precioUnitario` o con un `producto` que tenga `precio`.
+ * @param {{ precioUnitario?: number, producto?: { precio: number }, cantidad: number }} item
+ * @returns {number}
+ */
+function calcularSubtotal(item) {
+  const precio = item.precioUnitario != null
+    ? item.precioUnitario
+    : (item.producto && item.producto.precio);
+  return precio * item.cantidad;
+}
+
+/**
+ * Calcula el total de un pedido a partir de sus items (HU-02).
+ * @param {Array} itemsPedido
  * @returns {number}
  */
 function calcularTotalPedido(itemsPedido) {
-  return itemsPedido.reduce((total, item) => {
-    return total + item.precioUnitario * item.cantidad;
-  }, 0);
+  return itemsPedido.reduce((total, item) => total + calcularSubtotal(item), 0);
+}
+
+/**
+ * Agrega un item a un pedido existente.
+ * @param {Pedido} pedido
+ * @param {import('../models/Producto')} producto
+ * @param {number} cantidad
+ * @returns {ItemPedido} El item agregado.
+ */
+function agregarItemPedido(pedido, producto, cantidad) {
+  const item = new ItemPedido(producto, cantidad);
+  pedido.items.push(item);
+  return item;
 }
 
 /**
@@ -133,7 +157,9 @@ function cambiarEstado(id, nuevoEstado) {
 }
 
 module.exports = {
+  calcularSubtotal,
   calcularTotalPedido,
+  agregarItemPedido,
   validarDisponibilidadPedido,
   crearPedido,
   confirmarPedido,

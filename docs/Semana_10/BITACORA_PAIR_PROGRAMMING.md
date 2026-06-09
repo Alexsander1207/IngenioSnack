@@ -68,6 +68,31 @@ del ciclo TDD para HU-01.
 
 ---
 
+### Sesion Dia 3 — Pedido anticipado y calculo total
+
+**Fecha:** 09/06/2026
+**Hora:** [colocar hora]
+**Historia trabajada:** HU-02 — Realizar pedido anticipado / HU-06 — Identificar estudiante
+
+| Rol XP    | Integrante              |
+|-----------|-------------------------|
+| Conductor | [Nombre del integrante] |
+| Navegador | [Nombre del integrante] |
+
+#### Actividad realizada
+
+Se completaron las funciones de pedido de HU-02: `calcularSubtotal` (precio unitario x
+cantidad) y `agregarItemPedido` (agrega una linea a un pedido existente), ademas del
+campo `correo` institucional en el modelo Estudiante (HU-06). La regla critica trabajada
+fue el **calculo total del pedido**, que ahora reutiliza `calcularSubtotal`.
+
+#### Resultado
+
+Las pruebas de `calcularSubtotal`, `calcularTotalPedido` y `agregarItemPedido` pasan en
+verde (total = S/ 13.00 para el caso de prueba), cumpliendo la fase Green del ciclo TDD.
+
+---
+
 ### Sesion 4 — Dia 4 | Pareja Backend + Tests
 
 | Campo          | Detalle                                                                          |
