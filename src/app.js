@@ -1,7 +1,7 @@
 /**
  * app.js
- * Punto de entrada del MVP. Muestra la pantalla principal de IngenioSnack
- * con el menu disponible (HU-01).
+ * Punto de entrada del MVP. Muestra la pantalla principal de IngenioSnack,
+ * valida disponibilidad y demuestra confirmacion de pedido (HU-01, HU-03).
  *
  * Ejecutar con: npm start
  */
@@ -10,10 +10,14 @@ const {
   listarProductos,
   listarProductosDisponibles,
 } = require('./services/menuService');
+const {
+  crearPedido,
+  confirmarPedido,
+  validarDisponibilidadPedido,
+} = require('./services/pedidoService');
 
 // ─────────────────────────────────────────────
 //  PANTALLA PRINCIPAL — Diseño movil en consola
-//  Vista pensada para consulta desde celular
 // ─────────────────────────────────────────────
 
 function mostrarPantallaPrincipal(productos) {
@@ -44,18 +48,59 @@ function mostrarPantallaPrincipal(productos) {
   console.log('═'.repeat(36) + '\n');
 }
 
-registrarProducto({ nombre: 'Sandwich de pollo', precio: 5, categoria: 'Sandwich', disponible: true });
-registrarProducto({ nombre: 'Cafe americano',    precio: 3, categoria: 'Bebida',   disponible: true });
-registrarProducto({ nombre: 'Empanada',          precio: 4, categoria: 'Snack',    disponible: false });
-registrarProducto({ nombre: 'Jugo de naranja',   precio: 4, categoria: 'Bebida',   disponible: true });
-registrarProducto({ nombre: 'Galletas',          precio: 2, categoria: 'Snack',    disponible: true });
+function mostrarResumenPedido(pedido) {
+  const linea = '─'.repeat(36);
+  console.log('\n' + linea);
+  console.log(`  📦 RESUMEN DE PEDIDO — ${pedido.id}`);
+  console.log(linea);
+  pedido.items.forEach((item) => {
+    const subtotal = `S/ ${item.subtotal.toFixed(2)}`;
+    console.log(`  x${item.cantidad}  ${item.producto.nombre.padEnd(18)} ${subtotal}`);
+  });
+  console.log(linea);
+  console.log(`  TOTAL:                    S/ ${pedido.total.toFixed(2)}`);
+  console.log(`  ESTADO:                   ${pedido.estado}`);
+  console.log(linea + '\n');
+}
+
+function mostrarMensaje(tipo, texto) {
+  const iconos = { ok: '✅', error: '❌', info: 'ℹ️ ' };
+  console.log(`  ${iconos[tipo] || ''} ${texto}`);
+}
+
+// ─────────────────────────────────────────────
+//  DEMO DEL FLUJO COMPLETO
+// ─────────────────────────────────────────────
+
+registrarProducto({ id: 'P1', nombre: 'Sandwich de pollo', precio: 5,   categoria: 'Sandwich', disponible: true  });
+registrarProducto({ id: 'P2', nombre: 'Cafe americano',    precio: 3,   categoria: 'Bebida',   disponible: true  });
+registrarProducto({ id: 'P3', nombre: 'Empanada',          precio: 4,   categoria: 'Snack',    disponible: false });
+registrarProducto({ id: 'P4', nombre: 'Jugo de naranja',   precio: 4,   categoria: 'Bebida',   disponible: true  });
 
 mostrarPantallaPrincipal(listarProductos());
 
-const disponibles = listarProductosDisponibles();
-console.log(`Productos disponibles: ${disponibles.length}`);
-disponibles.forEach((p) => {
-  console.log(`  - ${p.nombre} | S/ ${p.precio.toFixed(2)} | ${p.categoria}`);
-});
+// Intento de pedido con producto no disponible
+console.log('  --- Caso 1: pedido con producto no disponible ---');
+const pedidoInvalido = {
+  items: [{ producto: { nombre: 'Empanada', precio: 4, disponible: false }, cantidad: 1 }],
+};
+const validacion = validarDisponibilidadPedido(pedidoInvalido);
+mostrarMensaje(validacion.valido ? 'ok' : 'error', validacion.mensaje);
+mostrarMensaje('info', 'Seleccione otra opcion del menu.');
 
-module.exports = { mostrarPantallaPrincipal };
+console.log('\n  --- Caso 2: pedido valido y confirmacion ---');
+try {
+  const pedido = crearPedido('E1', [
+    { productoId: 'P1', cantidad: 1 },
+    { productoId: 'P4', cantidad: 2 },
+  ]);
+  mostrarResumenPedido(pedido);
+
+  confirmarPedido(pedido.id);
+  mostrarMensaje('ok', 'Pedido confirmado correctamente.');
+  mostrarMensaje('info', `Nuevo estado: ${pedido.estado}`);
+} catch (e) {
+  mostrarMensaje('error', `No se puede confirmar el pedido: ${e.message}`);
+}
+
+module.exports = { mostrarPantallaPrincipal, mostrarResumenPedido, mostrarMensaje };

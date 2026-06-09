@@ -70,10 +70,10 @@ IngenioSnack/
 | ID    | Historia                                         | Prioridad | Estimacion | Estado     |
 |-------|--------------------------------------------------|-----------|------------|------------|
 | HU-01 | Como estudiante quiero ver el menu disponible    | Alta      | 2 pts      | GREEN ✅   |
-| HU-02 | Como estudiante quiero crear un pedido           | Alta      | 5 pts      | Pendiente  |
-| HU-03 | Como cafetero quiero cambiar estado de pedido    | Media     | 3 pts      | Pendiente  |
+| HU-02 | Como estudiante quiero crear un pedido           | Alta      | 5 pts      | GREEN ✅   |
+| HU-03 | Como cafetero quiero validar disponibilidad      | Alta      | 3 pts      | GREEN ✅   |
 | HU-04 | Como cafetero quiero actualizar disponibilidad   | Alta      | 3 pts      | GREEN ✅   |
-| HU-05 | Como estudiante quiero acumular puntos           | Media     | 3 pts      | Pendiente  |
+| HU-05 | Como estudiante quiero acumular puntos           | Media     | 3 pts      | GREEN ✅   |
 
 ---
 
@@ -98,17 +98,28 @@ npm run test:coverage
 
 ---
 
-## Estado del ciclo TDD — Dia 1
+## Estado del ciclo TDD — Dia 4
 
 ```
-menuService — registrarProducto():             VERDE ✅
-menuService — listarProductos():               VERDE ✅
-menuService — listarProductosDisponibles():    VERDE ✅ (fase GREEN completada)
-menuService — cambiarDisponibilidadProducto(): VERDE ✅
+menuService  — registrarProducto():             VERDE ✅
+menuService  — listarProductosDisponibles():    VERDE ✅
+menuService  — cambiarDisponibilidadProducto(): VERDE ✅
+pedidoService — crearPedido():                  VERDE ✅
+pedidoService — validarDisponibilidadPedido():  VERDE ✅  (Dia 4)
+pedidoService — confirmarPedido():              VERDE ✅  (Dia 4)
+pedidoService — calcularTotalPedido():          VERDE ✅  (Dia 4 - Refactor)
+fidelidadService — acreditarPuntos():           VERDE ✅
+fidelidadService — canjearPuntos():             VERDE ✅
 ```
 
 La evidencia del ciclo RED-GREEN-REFACTOR se encuentra en:
 `docs/Semana_10/EVIDENCIAS_TDD/`
+
+### Regla de negocio implementada (HU-03)
+
+Solo se puede confirmar un pedido si **todos** los productos seleccionados
+tienen `disponible: true`. Si alguno esta agotado, el sistema bloquea la
+confirmacion con el mensaje: *"El pedido contiene productos no disponibles"*.
 
 ---
 

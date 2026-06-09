@@ -68,6 +68,40 @@ del ciclo TDD para HU-01.
 
 ---
 
+### Sesion 4 — Dia 4 | Pareja Backend + Tests
+
+| Campo          | Detalle                                                                          |
+|----------------|----------------------------------------------------------------------------------|
+| Fecha          | 09/06/2026                                                                       |
+| Hora inicio    | 08:00                                                                            |
+| Duracion       | 2 horas                                                                          |
+| Driver         | Integrante 2 — Chavez Paquiyauri Jack Luis                                       |
+| Navigator      | Integrante 3 — Flores Ccente Franklin David                                      |
+| Historia/Tarea | HU-03 — Validar disponibilidad antes de confirmar pedido                         |
+| Objetivo       | Implementar `validarDisponibilidadPedido`, `confirmarPedido`, `calcularTotalPedido` y refactorizar codigo |
+| Resultado      | `pedidoService.js` actualizado con 3 nuevas funciones exportadas. `Pedido.js` con estado `CONFIRMADO`. 9 tests nuevos agregados — todos en verde. `REFACTORIZACION.md` con 4 refactors documentados. |
+| Aprendizajes   | Extraer la validacion en su propia funcion (Extract Method) permite testearla de forma aislada y reutilizarla en `confirmarPedido`. La fase Refactor no cambia comportamiento, solo mejora legibilidad. |
+| Pendientes     | Dia 5: integracion final, flujo completo en app.js, evidencias finales.          |
+
+---
+
+### Sesion 5 — Dia 4 | Pareja Frontend + Documentacion
+
+| Campo          | Detalle                                                                          |
+|----------------|----------------------------------------------------------------------------------|
+| Fecha          | 09/06/2026                                                                       |
+| Hora inicio    | 08:00                                                                            |
+| Duracion       | 2 horas                                                                          |
+| Driver         | Integrante 1 — Artica Arias Gustavo Alonso                                       |
+| Navigator      | Integrante 4 — Jayo Mallqui Alexsander Antoni                                    |
+| Historia/Tarea | HU-03 — Vista de validacion / Documentacion Dia 4                                |
+| Objetivo       | Mejorar mensajes visuales en app.js, actualizar README y REFACTORIZACION.md      |
+| Resultado      | `app.js` con `mostrarResumenPedido`, `mostrarMensaje` y flujo de validacion. `REFACTORIZACION.md` completo con 4 refactors documentados. README actualizado con estado HU-03 en verde. |
+| Aprendizajes   | Los mensajes visuales claros (producto no disponible, pedido confirmado) mejoran la experiencia sin necesidad de una UI web real. |
+| Pendientes     | Tomar captura `03_refactor_codigo_limpio.png` con los tests en verde.            |
+
+---
+
 ## Plantilla para sesiones futuras
 
 | Campo            | Detalle |

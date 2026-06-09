@@ -37,4 +37,67 @@ describe('pedidoService', () => {
     const pedido = pedidoService.crearPedido('E1', [{ productoId: 'P1', cantidad: 1 }]);
     expect(() => pedidoService.cambiarEstado(pedido.id, 'VOLANDO')).toThrow();
   });
+
+  // --- HU-03: validacion de disponibilidad (Dia 4) ---
+
+  test('debe bloquear el pedido si un producto no esta disponible', () => {
+    const pedido = {
+      estudiante: { nombre: 'Alex', codigo: '20240001' },
+      items: [
+        {
+          producto: { nombre: 'Sandwich de pollo', precio: 5, disponible: false },
+          cantidad: 1,
+        },
+      ],
+    };
+
+    const resultado = pedidoService.validarDisponibilidadPedido(pedido);
+
+    expect(resultado.valido).toBe(false);
+    expect(resultado.mensaje).toBe('El pedido contiene productos no disponibles');
+  });
+
+  test('debe permitir el pedido si todos los productos estan disponibles', () => {
+    const pedido = {
+      estudiante: { nombre: 'Ana', codigo: '20240002' },
+      items: [
+        {
+          producto: { nombre: 'Sandwich de pollo', precio: 5, disponible: true },
+          cantidad: 1,
+        },
+        {
+          producto: { nombre: 'Jugo de naranja', precio: 4, disponible: true },
+          cantidad: 2,
+        },
+      ],
+    };
+
+    const resultado = pedidoService.validarDisponibilidadPedido(pedido);
+
+    expect(resultado.valido).toBe(true);
+  });
+
+  test('confirma un pedido con productos disponibles y cambia estado a CONFIRMADO', () => {
+    const pedido = pedidoService.crearPedido('E1', [{ productoId: 'P1', cantidad: 1 }]);
+    const confirmado = pedidoService.confirmarPedido(pedido.id);
+    expect(confirmado.estado).toBe(ESTADOS.CONFIRMADO);
+  });
+
+  test('bloquea la confirmacion si un producto se volvio no disponible', () => {
+    const pedido = pedidoService.crearPedido('E1', [{ productoId: 'P1', cantidad: 1 }]);
+    menuService.cambiarDisponibilidadProducto('P1', false);
+    expect(() => pedidoService.confirmarPedido(pedido.id)).toThrow(
+      'El pedido contiene productos no disponibles'
+    );
+  });
+
+  // --- Refactor: calcularTotalPedido (Dia 4) ---
+
+  test('calcularTotalPedido suma correctamente los items', () => {
+    const items = [
+      { precioUnitario: 5, cantidad: 2 },
+      { precioUnitario: 3, cantidad: 1 },
+    ];
+    expect(pedidoService.calcularTotalPedido(items)).toBe(13);
+  });
 });

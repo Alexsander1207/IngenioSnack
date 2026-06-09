@@ -7,6 +7,7 @@
 /** Estados validos por los que transita un pedido. */
 const ESTADOS = Object.freeze({
   PENDIENTE: 'PENDIENTE',
+  CONFIRMADO: 'CONFIRMADO',
   EN_PREPARACION: 'EN_PREPARACION',
   LISTO: 'LISTO',
   ENTREGADO: 'ENTREGADO',
