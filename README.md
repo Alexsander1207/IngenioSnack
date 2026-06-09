@@ -65,6 +65,31 @@ La Iteracion 1 tiene una capacidad maxima de **20 puntos de historia**. Por ello
 - Integrante 4: JAYO MALLQUI ALEXSANDER ANTONI
 - Integrante 5: RAYMUNDO CONDOR FRANK ANGEL
 
+## Avance Dia 2 - Sprint 1
+
+Durante el Dia 2 se completo la implementacion minima de la historia HU-01: Consultar menu disponible.
+
+### Funcionalidades implementadas
+
+- Registro de productos del menu.
+- Listado general de productos.
+- Listado de productos disponibles.
+- Cambio de disponibilidad de productos sin eliminarlos.
+
+### Pruebas realizadas
+
+Se ejecutaron pruebas unitarias con Jest para validar que el sistema muestre unicamente productos disponibles.
+
+### Comando de pruebas
+
+```bash
+npm test
+```
+
+### Resultado
+
+Las pruebas de `menuService.test.js` pasan correctamente, cumpliendo la fase Green del ciclo TDD.
+
 ## Estado
 
 Practica desarrollada para entrega academica en ADESA y evidencia en GitHub.

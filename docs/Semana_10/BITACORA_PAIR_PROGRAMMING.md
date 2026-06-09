@@ -48,3 +48,26 @@ de **Driver** (escribe el codigo) y **Navigator** (revisa, piensa en el diseno).
 | Resultado      | TBD     |
 | Aprendizajes   | TBD     |
 | Pendientes     | TBD     |
+
+---
+
+## Sesion Dia 2 - Implementacion minima del menu
+
+**Fecha:** 2026-06-09
+**Hora:** [colocar hora]
+**Historia trabajada:** HU-01 - Consultar menu disponible
+
+| Rol XP    | Integrante |
+|-----------|------------|
+| Conductor | [Nombre del integrante] |
+| Navegador | [Nombre del integrante] |
+
+### Actividad realizada
+
+Se implemento el codigo minimo necesario para que la prueba de menu disponible pase
+correctamente. Se completo el modelo Producto, el servicio menuService (registrar,
+listar, listar disponibles y cambiar disponibilidad) y las pruebas unitarias de HU-01.
+
+### Resultado
+
+La prueba de menu disponible paso correctamente, cumpliendo la fase Green del ciclo TDD.

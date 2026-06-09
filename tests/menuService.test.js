@@ -1,27 +1,103 @@
-const menuService = require('../src/services/menuService');
-const { reset } = require('../src/data/memoria');
+const memoria = require('../src/data/memoria');
 
-describe('menuService', () => {
-  beforeEach(() => reset());
+const {
+  registrarProducto,
+  listarProductos,
+  listarProductosDisponibles,
+  cambiarDisponibilidadProducto,
+} = require('../src/services/menuService');
 
-  test('agrega un producto al menu', () => {
-    const p = menuService.agregarProducto({ id: 'P1', nombre: 'Empanada', precio: 3.5, categoria: 'comida' });
-    expect(p.id).toBe('P1');
-    expect(menuService.listarProductos()).toHaveLength(1);
+beforeEach(() => {
+  memoria.productos = [];
+});
+
+test('debe registrar un producto en el menú', () => {
+  const producto = registrarProducto({
+    nombre: 'Sandwich de pollo',
+    precio: 5,
+    categoria: 'Sandwich',
+    disponible: true,
   });
 
-  test('lista solo los productos disponibles', () => {
-    menuService.agregarProducto({ id: 'P1', nombre: 'Empanada', precio: 3.5, categoria: 'comida' });
-    menuService.agregarProducto({ id: 'P2', nombre: 'Cafe agotado', precio: 4, categoria: 'bebida', disponible: false });
+  expect(producto.nombre).toBe('Sandwich de pollo');
+  expect(producto.precio).toBe(5);
+  expect(producto.categoria).toBe('Sandwich');
+  expect(producto.disponible).toBe(true);
+});
 
-    const disponibles = menuService.listarDisponibles();
-    expect(disponibles).toHaveLength(1);
-    expect(disponibles[0].id).toBe('P1');
+test('debe listar todos los productos registrados', () => {
+  registrarProducto({
+    nombre: 'Sandwich de pollo',
+    precio: 5,
+    categoria: 'Sandwich',
+    disponible: true,
   });
 
-  test('obtiene un producto por id', () => {
-    menuService.agregarProducto({ id: 'P1', nombre: 'Empanada', precio: 3.5, categoria: 'comida' });
-    expect(menuService.obtenerProducto('P1').nombre).toBe('Empanada');
-    expect(menuService.obtenerProducto('NO-EXISTE')).toBeUndefined();
+  registrarProducto({
+    nombre: 'Empanada',
+    precio: 4,
+    categoria: 'Snack',
+    disponible: false,
   });
+
+  const productos = listarProductos();
+
+  expect(productos).toHaveLength(2);
+});
+
+test('debe listar solo los productos disponibles', () => {
+  const productos = [
+    {
+      nombre: 'Sandwich de pollo',
+      precio: 5,
+      categoria: 'Sandwich',
+      disponible: true,
+    },
+    {
+      nombre: 'Empanada',
+      precio: 4,
+      categoria: 'Snack',
+      disponible: false,
+    },
+  ];
+
+  const resultado = listarProductosDisponibles(productos);
+
+  expect(resultado).toHaveLength(1);
+  expect(resultado[0].nombre).toBe('Sandwich de pollo');
+});
+
+test('debe excluir productos no disponibles del menú visible', () => {
+  registrarProducto({
+    nombre: 'Cafe americano',
+    precio: 3,
+    categoria: 'Bebida',
+    disponible: true,
+  });
+
+  registrarProducto({
+    nombre: 'Pan con pollo',
+    precio: 6,
+    categoria: 'Sandwich',
+    disponible: false,
+  });
+
+  const disponibles = listarProductosDisponibles();
+
+  expect(disponibles).toHaveLength(1);
+  expect(disponibles[0].nombre).toBe('Cafe americano');
+});
+
+test('debe cambiar la disponibilidad de un producto sin eliminarlo', () => {
+  const producto = registrarProducto({
+    nombre: 'Triple',
+    precio: 5,
+    categoria: 'Sandwich',
+    disponible: true,
+  });
+
+  const actualizado = cambiarDisponibilidadProducto(producto.id, false);
+
+  expect(actualizado.disponible).toBe(false);
+  expect(listarProductos()).toHaveLength(1);
 });

@@ -37,3 +37,22 @@ TDD y pair programming.
 - [ ] Sin codigo duplicado evidente (refactor aplicado).
 - [ ] Evidencias TDD (red/green/refactor) adjuntas.
 - [ ] Bitacora de pair programming actualizada.
+
+## Avance Dia 2
+
+### Historia trabajada
+
+- HU-01: Consultar menu disponible.
+- HU-04 parcial: Actualizar disponibilidad del menu.
+
+### Tareas cerradas
+
+- Modelo Producto implementado.
+- Servicio de menu implementado.
+- Pruebas unitarias de menu completadas.
+- Evidencia Green generada.
+- README actualizado.
+
+### Estado
+
+Dia 2 completado.
