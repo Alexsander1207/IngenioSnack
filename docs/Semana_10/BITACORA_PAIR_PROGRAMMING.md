@@ -26,6 +26,10 @@ de **Driver** (escribe el codigo) y **Navigator** (revisa, piensa en el diseno).
 | Pendientes     | Completar implementacion y verificar todos los tests en verde.          |
 
 ---
+<img width="1358" height="553" alt="image" src="https://github.com/user-attachments/assets/41fb9a8a-e3aa-49e1-b855-bd9a5089a9b8" />
+
+
+
 
 ### Sesion 2 — Dia 1 | Pareja Frontend + Documentacion
 
@@ -43,6 +47,10 @@ de **Driver** (escribe el codigo) y **Navigator** (revisa, piensa en el diseno).
 | Pendientes     | Dia 2: conectar la vista con el flujo de creacion de pedido.            |
 
 ---
+
+<img width="1357" height="549" alt="image" src="https://github.com/user-attachments/assets/4e6871af-e44a-4326-8eb6-78021738bc54" />
+
+
 
 ### Sesion 3 — Dia 1 | Implementacion minima HU-01
 
@@ -92,6 +100,8 @@ Las pruebas de `calcularSubtotal`, `calcularTotalPedido` y `agregarItemPedido` p
 verde (total = S/ 13.00 para el caso de prueba), cumpliendo la fase Green del ciclo TDD.
 
 ---
+<img width="1365" height="610" alt="image" src="https://github.com/user-attachments/assets/6b57d79c-d2f4-4907-b5ce-3f225570310c" />
+
 
 ### Sesion 4 — Dia 4 | Pareja Backend + Tests
 
@@ -110,6 +120,9 @@ verde (total = S/ 13.00 para el caso de prueba), cumpliendo la fase Green del ci
 
 ---
 
+
+<img width="1357" height="524" alt="image" src="https://github.com/user-attachments/assets/ad8faf8d-687a-4f4d-9d97-126a73be8824" />
+
 ### Sesion 5 — Dia 4 | Pareja Frontend + Documentacion
 
 | Campo          | Detalle                                                                          |
@@ -126,6 +139,12 @@ verde (total = S/ 13.00 para el caso de prueba), cumpliendo la fase Green del ci
 | Pendientes     | Tomar captura `03_refactor_codigo_limpio.png` con los tests en verde.            |
 
 ---
+
+
+![Uploading image.png…]()
+
+
+
 
 ### Sesion 6 — Dia 5 | Pareja Backend + Tests (Cierre MVP)
 
@@ -160,6 +179,7 @@ verde (total = S/ 13.00 para el caso de prueba), cumpliendo la fase Green del ci
 | Pendientes     | Tomar capturas de pantalla para EVIDENCIAS_TDD y subir al repositorio.           |
 
 ---
+![Uploading image.png…]()
 
 ## Plantilla para sesiones futuras
 
