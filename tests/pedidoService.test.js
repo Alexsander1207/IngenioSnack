@@ -113,4 +113,41 @@ describe('pedidoService', () => {
     expect(pedido.items).toHaveLength(2);
     expect(pedido.total).toBe(3.5 + 4 * 2);
   });
+
+  // --- Pruebas de Gestión de Stock / Inventario en Tiempo Real ---
+
+  test('resta stock automáticamente al crear un pedido y desactiva disponibilidad al llegar a 0', () => {
+    const prod = menuService.obtenerProducto('P1');
+    prod.stock = 5;
+    prod.disponible = true;
+
+    // Crear pedido de 5 unidades de P1
+    pedidoService.crearPedido('E1', [{ productoId: 'P1', cantidad: 5 }]);
+    
+    expect(prod.stock).toBe(0);
+    expect(prod.disponible).toBe(false); // Debería desactivarse automáticamente
+  });
+
+  test('bloquea la creación del pedido si no hay stock suficiente', () => {
+    const prod = menuService.obtenerProducto('P1');
+    prod.stock = 2;
+    prod.disponible = true;
+
+    expect(() => {
+      pedidoService.crearPedido('E1', [{ productoId: 'P1', cantidad: 3 }]);
+    }).toThrow(/Stock insuficiente/);
+  });
+
+  test('repone el stock del producto al cancelar un pedido', () => {
+    const prod = menuService.obtenerProducto('P1');
+    prod.stock = 10;
+    prod.disponible = true;
+
+    const pedido = pedidoService.crearPedido('E1', [{ productoId: 'P1', cantidad: 4 }]);
+    expect(prod.stock).toBe(6);
+
+    // Cancelar el pedido
+    pedidoService.cambiarEstado(pedido.id, ESTADOS.CANCELADO);
+    expect(prod.stock).toBe(10); // Restaura stock
+  });
 });

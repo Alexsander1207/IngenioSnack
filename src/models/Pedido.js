@@ -6,12 +6,13 @@
 
 /** Estados validos por los que transita un pedido. */
 const ESTADOS = Object.freeze({
-  PENDIENTE: 'PENDIENTE',
-  CONFIRMADO: 'CONFIRMADO',
-  EN_PREPARACION: 'EN_PREPARACION',
-  LISTO: 'LISTO',
-  ENTREGADO: 'ENTREGADO',
-  CANCELADO: 'CANCELADO',
+  PENDIENTE:       'PENDIENTE',
+  CONFIRMADO:      'CONFIRMADO',
+  EN_PREPARACION:  'EN_PREPARACION',
+  LISTO:           'LISTO',
+  RECOGIDO:        'RECOGIDO',
+  ENTREGADO:       'RECOGIDO', // Alias for RECOGIDO
+  CANCELADO:       'CANCELADO',
 });
 
 class Pedido {

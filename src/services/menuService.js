@@ -19,6 +19,8 @@ function registrarProducto(datosProducto) {
     precio: datosProducto.precio,
     categoria: datosProducto.categoria,
     disponible: datosProducto.disponible,
+    imagenUrl: datosProducto.imagenUrl,
+    stock: datosProducto.stock != null ? datosProducto.stock : 15,
   });
 
   memoria.productos.push(producto);

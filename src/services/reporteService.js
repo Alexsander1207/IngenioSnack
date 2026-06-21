@@ -1,44 +1,66 @@
 /**
  * reporteService — HU-08: productos mas vendidos y estadisticas generales.
  */
-const { db } = require('../data/memoria');
+const { supabase } = require('../config/supabaseClient');
 const { ESTADOS } = require('../models/Pedido');
 
-function productosMasVendidos() {
+async function productosMasVendidos() {
+  const { data: items, error } = await supabase
+    .from('items_pedido')
+    .select('*, pedidos!inner(estado), productos(*)')
+    .eq('pedidos.estado', ESTADOS.RECOGIDO);
+
+  if (error) throw new Error(error.message);
+
   const conteo = {};
-  db.pedidos
-    .filter(p => p.estado === ESTADOS.ENTREGADO)
-    .forEach(pedido => {
-      pedido.items.forEach(item => {
-        const key = item.producto.id || item.producto.nombre;
-        if (!conteo[key]) {
-          conteo[key] = {
-            nombre: item.producto.nombre,
-            categoria: item.producto.categoria,
-            precio: item.producto.precio,
-            cantidad: 0,
-            ingresos: 0,
-          };
-        }
-        conteo[key].cantidad += item.cantidad;
-        conteo[key].ingresos += item.subtotal;
-      });
-    });
+  items.forEach(item => {
+    const prod = item.productos;
+    if (!prod) return;
+    const key = prod.id;
+    if (!conteo[key]) {
+      conteo[key] = {
+        nombre: prod.nombre,
+        categoria: prod.categoria,
+        precio: prod.precio,
+        cantidad: 0,
+        ingresos: 0,
+      };
+    }
+    conteo[key].cantidad += item.cantidad;
+    conteo[key].ingresos += item.precio_unitario * item.cantidad;
+  });
+
   return Object.values(conteo).sort((a, b) => b.cantidad - a.cantidad);
 }
 
-function estadisticasGenerales() {
-  const pedidos = db.pedidos;
-  const entregados = pedidos.filter(p => p.estado === ESTADOS.ENTREGADO);
-  const activos = pedidos.filter(p => ![ESTADOS.ENTREGADO, ESTADOS.CANCELADO].includes(p.estado));
+async function estadisticasGenerales() {
+  const { data: pedidos, error: errPed } = await supabase.from('pedidos').select('estado, total');
+  if (errPed) throw new Error(errPed.message);
+
+  const entregados = pedidos.filter(p => p.estado === ESTADOS.RECOGIDO);
+  const activos = pedidos.filter(p => ![ESTADOS.RECOGIDO, ESTADOS.CANCELADO].includes(p.estado));
+
+  const { count: totalEstudiantes, error: errEst } = await supabase
+    .from('estudiantes')
+    .select('*', { count: 'exact', head: true });
+  if (errEst) throw new Error(errEst.message);
+
+  const { data: productos, error: errProd } = await supabase
+    .from('productos')
+    .select('disponible, activo');
+  if (errProd) throw new Error(errProd.message);
+
+  const productosActivos = productos.filter(p => p.activo);
+  const productosDisponibles = productosActivos.filter(p => p.disponible);
+
   return {
     totalPedidos: pedidos.length,
     pedidosEntregados: entregados.length,
     pedidosActivos: activos.length,
-    ingresosTotales: entregados.reduce((s, p) => s + p.total, 0),
-    estudiantesRegistrados: db.estudiantes.length,
-    productosDisponibles: db.productos.filter(p => p.disponible).length,
-    totalProductos: db.productos.length,
+    ingresosTotales: entregados.reduce((s, p) => s + Number(p.total), 0),
+    estudiantesRegistrados: totalEstudiantes || 0,
+    productosDisponibles: productosDisponibles.length,
+    totalProductos: productosActivos.length,
   };
 }
 

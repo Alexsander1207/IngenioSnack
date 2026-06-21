@@ -5,43 +5,26 @@
  *
  * Ejecutar: node server.js   (o:  npm run web)
  */
-const express  = require('express');
-const path     = require('path');
+const express = require('express');
+const path = require('path');
 
-const menuService      = require('./src/services/menuService');
-const pedidoService    = require('./src/services/pedidoService');
-const fidelidadService = require('./src/services/fidelidadService');
-const reporteService   = require('./src/services/reporteService');
-const Estudiante       = require('./src/models/Estudiante');
-const { ESTADOS }      = require('./src/models/Pedido');
-const { db }           = require('./src/data/memoria');
+// Servicios y Modelos para Seed Data
+const menuService = require('./src/services/menuService');
+const pedidoService = require('./src/services/pedidoService');
+const estudianteService = require('./src/services/estudianteService');
+const Estudiante = require('./src/models/Estudiante');
+const { ESTADOS } = require('./src/models/Pedido');
+const { db } = require('./src/data/memoria');
+
+// Rutas modulares
+const authRoutes = require('./src/routes/authRoutes');
+const productoRoutes = require('./src/routes/productoRoutes');
+const pedidoRoutes = require('./src/routes/pedidoRoutes');
+const estudianteRoutes = require('./src/routes/estudianteRoutes');
+const reporteRoutes = require('./src/routes/reporteRoutes');
 
 const app = express();
 app.use(express.json());
-
-// ─── SERIALIZACION ──────────────────────────────────────────────
-// Los getters de clase (total, subtotal) no los incluye JSON.stringify,
-// por eso los computamos explicitamente antes de enviar.
-function serItem(item) {
-  return {
-    producto: item.producto,
-    cantidad: item.cantidad,
-    subtotal: item.subtotal,
-  };
-}
-
-function serPedido(p) {
-  const est = db.estudiantes.find(e => e.id === p.estudianteId);
-  return {
-    id:               p.id,
-    estudianteId:     p.estudianteId,
-    nombreEstudiante: est ? est.nombre : 'Desconocido',
-    items:            p.items.map(serItem),
-    estado:           p.estado,
-    fecha:            p.fecha,
-    total:            p.total,
-  };
-}
 
 // ─── DATOS INICIALES (SEED) ──────────────────────────────────────
 function seedData() {
@@ -58,8 +41,8 @@ function seedData() {
 
   // Estudiantes de prueba
   db.estudiantes.push(
-    new Estudiante({ id: 'E1', nombre: 'Ana Quispe',    codigo: '2021100123', correo: 'ana.quispe@uncp.edu.pe',    puntos: 15, sandwiches: 3 }),
-    new Estudiante({ id: 'E2', nombre: 'Carlos Rios',   codigo: '2022200456', correo: 'carlos.rios@uncp.edu.pe',   puntos: 8,  sandwiches: 7 }),
+    new Estudiante({ id: 'E1', nombre: 'Ana Quispe',    codigo: '2021100123', correo: 'ana.quispe@uncp.edu.pe',    puntos: 15, sandwiches: 3, password: estudianteService.hashPassword('12345678') }),
+    new Estudiante({ id: 'E2', nombre: 'Carlos Rios',   codigo: '2022200456', correo: 'carlos.rios@uncp.edu.pe',   puntos: 8,  sandwiches: 7, password: estudianteService.hashPassword('12345678') }),
   );
 
   // Pedidos de ejemplo en distintos estados
@@ -79,169 +62,23 @@ function seedData() {
 
 seedData();
 
-// ═══════════════════════════════════════════════════════════════
-//  AUTH
-// ═══════════════════════════════════════════════════════════════
-
-// HU-01 — Identificacion del estudiante por codigo o correo
-app.post('/api/auth/estudiante', (req, res) => {
-  const { codigo, correo, nombre } = req.body;
-  if (!codigo && !correo)
-    return res.status(400).json({ error: 'Se requiere codigo universitario o correo institucional.' });
-
-  let est = db.estudiantes.find(e =>
-    (codigo && e.codigo === codigo) ||
-    (correo && e.correo  === correo.toLowerCase())
-  );
-
-  if (!est) {
-    if (!nombre || nombre.trim() === '') {
-      return res.status(404).json({
-        error:   'Estudiante no encontrado. Ingresa tu nombre para registrarte.',
-        registro: true,
-      });
-    }
-    const id = 'E' + Date.now();
-    est = new Estudiante({
-      id,
-      nombre: nombre.trim(),
-      codigo: codigo  || null,
-      correo: correo  ? correo.toLowerCase() : null,
-    });
-    db.estudiantes.push(est);
-  }
-
-  res.json({ ok: true, estudiante: { id: est.id, nombre: est.nombre, codigo: est.codigo, correo: est.correo } });
-});
-
-// Admin — PIN 1234
-app.post('/api/auth/admin', (req, res) => {
-  const { pin } = req.body;
-  if (pin !== '1234') return res.status(401).json({ error: 'PIN incorrecto.' });
-  res.json({ ok: true, admin: { nombre: 'Sr. Julio', rol: 'vendedor' } });
-});
-
-// ═══════════════════════════════════════════════════════════════
-//  PRODUCTOS  (HU-02, HU-05)
-// ═══════════════════════════════════════════════════════════════
-
-app.get('/api/productos', (_req, res) => {
-  res.json(menuService.listarProductos());
-});
-
-app.post('/api/productos', (req, res) => {
-  const { nombre, precio, categoria } = req.body;
-  if (!nombre || precio == null || !categoria)
-    return res.status(400).json({ error: 'nombre, precio y categoria son requeridos.' });
-  const p = menuService.registrarProducto({
-    nombre:    nombre.trim(),
-    precio:    parseFloat(precio),
-    categoria,
-  });
-  res.status(201).json(p);
-});
-
-// HU-05 — Gestion rapida de disponibilidad
-app.put('/api/productos/:id', (req, res) => {
-  const { disponible } = req.body;
-  if (typeof disponible !== 'boolean')
-    return res.status(400).json({ error: 'disponible debe ser true o false.' });
-  const producto = menuService.cambiarDisponibilidadProducto(req.params.id, disponible);
-  if (!producto) return res.status(404).json({ error: 'Producto no encontrado.' });
-  res.json(producto);
-});
-
-// ═══════════════════════════════════════════════════════════════
-//  PEDIDOS  (HU-03, HU-04, HU-06, HU-09)
-// ═══════════════════════════════════════════════════════════════
-
-// HU-09 — Lista de pedidos (para Sr. Julio)
-app.get('/api/pedidos', (_req, res) => {
-  res.json(db.pedidos.map(serPedido));
-});
-
-// HU-03 — Crear pedido anticipado
-app.post('/api/pedidos', (req, res) => {
-  const { estudianteId, lineas } = req.body;
-  if (!estudianteId || !Array.isArray(lineas))
-    return res.status(400).json({ error: 'estudianteId y lineas[] son requeridos.' });
-  try {
-    const pedido = pedidoService.crearPedido(estudianteId, lineas);
-    res.status(201).json(serPedido(pedido));
-  } catch (err) {
-    res.status(400).json({ error: err.message });
-  }
-});
-
-// HU-04 — Confirmar con validacion de disponibilidad
-app.post('/api/pedidos/:id/confirmar', (req, res) => {
-  try {
-    const pedido = pedidoService.confirmarPedido(req.params.id);
-    res.json(serPedido(pedido));
-  } catch (err) {
-    res.status(400).json({ error: err.message });
-  }
-});
-
-// HU-06 — Cambiar estado; al ENTREGADO se acreditan puntos y sandwiches
-app.put('/api/pedidos/:id/estado', (req, res) => {
-  const { estado } = req.body;
-  if (!estado) return res.status(400).json({ error: 'estado es requerido.' });
-  try {
-    const pedido = pedidoService.cambiarEstado(req.params.id, estado);
-
-    if (estado === ESTADOS.ENTREGADO) {
-      const est = db.estudiantes.find(e => e.id === pedido.estudianteId);
-      if (est) {
-        fidelidadService.acreditarPuntos(est.id, pedido.total);
-        const sws = pedido.items
-          .filter(i => i.producto.categoria === 'Sandwich')
-          .reduce((s, i) => s + i.cantidad, 0);
-        if (sws > 0) fidelidadService.registrarSandwich(est.id, sws);
-      }
-    }
-
-    res.json(serPedido(pedido));
-  } catch (err) {
-    res.status(400).json({ error: err.message });
-  }
-});
-
-// ═══════════════════════════════════════════════════════════════
-//  ESTUDIANTE  (HU-07)
-// ═══════════════════════════════════════════════════════════════
-
-app.get('/api/estudiante/:id', (req, res) => {
-  const est = db.estudiantes.find(e => e.id === req.params.id);
-  if (!est) return res.status(404).json({ error: 'Estudiante no encontrado.' });
-  const pedidos    = db.pedidos.filter(p => p.estudianteId === req.params.id).map(serPedido);
-  const beneficios = fidelidadService.obtenerBeneficios(req.params.id);
-  res.json({ id: est.id, nombre: est.nombre, codigo: est.codigo, correo: est.correo, pedidos, beneficios });
-});
-
-// HU-07 — Canjear cafe gratis (10 sandwiches acumulados)
-app.post('/api/estudiante/:id/canjear-cafe', (req, res) => {
-  try {
-    const result = fidelidadService.canjearCafeGratis(req.params.id);
-    res.json(result);
-  } catch (err) {
-    res.status(400).json({ error: err.message });
-  }
-});
-
-// ═══════════════════════════════════════════════════════════════
-//  REPORTE  (HU-08)
-// ═══════════════════════════════════════════════════════════════
-
-app.get('/api/reporte', (_req, res) => {
-  res.json({
-    masVendidos:  reporteService.productosMasVendidos(),
-    estadisticas: reporteService.estadisticasGenerales(),
-  });
-});
+// ─── MONTAR RUTAS API ────────────────────────────────────────────
+app.use('/api/auth', authRoutes);
+app.use('/api/productos', productoRoutes);
+app.use('/api/pedidos', pedidoRoutes);
+app.use('/api/estudiante', estudianteRoutes);
+app.use('/api/reporte', reporteRoutes);
 
 // Servir SPA después de todas las rutas API
 app.use(express.static(path.join(__dirname, 'public')));
+
+// SPA fallback route for React Router client-side routing on page refresh
+app.get('*splat', (req, res) => {
+  if (req.path.startsWith('/api') || req.path.includes('.')) {
+    return res.status(404).send('Not Found');
+  }
+  res.sendFile(path.join(__dirname, 'public/index.html'));
+});
 
 // ─── ARRANCAR ───────────────────────────────────────────────────
 const PORT = 3000;

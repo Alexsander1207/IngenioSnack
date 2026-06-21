@@ -151,6 +151,17 @@ async function desactivarProducto(id) {
   return data;
 }
 
+/**
+ * Busca un producto por su id.
+ * @param {string} id
+ * @returns {Promise<Object|undefined>}
+ */
+async function obtenerProducto(id) {
+  const { data, error } = await supabase.from(TABLA).select('*').eq('id', id).maybeSingle();
+  if (error) throw new Error(error.message);
+  return data || undefined;
+}
+
 module.exports = {
   validarProducto,
   crearProducto,
@@ -159,4 +170,5 @@ module.exports = {
   actualizarProducto,
   cambiarDisponibilidadProducto,
   desactivarProducto,
+  obtenerProducto,
 };
