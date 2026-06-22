@@ -21,25 +21,7 @@ async function generarId() {
 }
 
 /**
- * Calcula el subtotal de una linea de pedido.
-const menuService = require('./menuService');
-const fidelidadService = require('./fidelidadService'); // HU-01 y HU-07: Para acreditar puntos y sándwiches
-const { db } = require('../data/memoria');
-
-let contador = 0;
-
-/**
- * Genera un ID incremental único para los pedidos del sistema.
- * @returns {string} Ejemplo: "PED-0001"
- */
-function generarId() {
-  contador += 1;
-  return `PED-${String(contador).padStart(4, '0')}`;
-}
-
-/**
  * HU-02: Calcula el subtotal de una línea de pedido.
- * Acepta ítems con `precioUnitario` o con un `producto` que tenga `precio`.
  * @param {{ precioUnitario?: number, producto?: { precio: number }, cantidad: number }} item
  * @returns {number} Subtotal en soles.
  */
@@ -50,11 +32,10 @@ function calcularSubtotal(item) {
     : (item.producto && item.producto.precio);
   
   const cantidad = item.cantidad || 0;
-  return precio * cantidad;
+  return (precio || 0) * cantidad;
 }
 
 /**
- * Calcula el total de un pedido a partir de sus items.
  * HU-02: Calcula el total de un pedido a partir de sus ítems.
  * @param {Array} itemsPedido
  * @returns {number} Total acumulado en soles.
@@ -62,26 +43,6 @@ function calcularSubtotal(item) {
 function calcularTotalPedido(itemsPedido) {
   if (!Array.isArray(itemsPedido)) return 0;
   return itemsPedido.reduce((total, item) => total + calcularSubtotal(item), 0);
-}
-
-/**
- * Valida que todos los productos de un pedido esten disponibles.
- * Agrega un ítem a un pedido existente (Solo si el pedido lo permite estructuralmente).
- * @param {Pedido} pedido
- * @param {import('../models/Producto')} producto
- * @param {number} cantidad
- * @returns {ItemPedido} El ítem agregado.
- */
-function agregarItemPedido(pedido, producto, cantidad) {
-  const item = new ItemPedido(producto, cantidad);
-  
-  // Si el objeto pedido tiene el método estructurado lo usamos, si no, hacemos el push directo
-  if (typeof pedido.agregarItem === 'function') {
-    pedido.agregarItem(item);
-  } else {
-    pedido.items.push(item);
-  }
-  return item;
 }
 
 /**
@@ -107,14 +68,12 @@ function validarDisponibilidadPedido(pedido) {
 
   return {
     valido: true,
-    text: 'Todos los productos estan disponibles',
     mensaje: 'Todos los productos están disponibles',
   };
 }
 
 /**
- * HU-03: Crea un pedido a partir de una lista de ítems {productoId, cantidad}.
- * Lanza error si algún producto no existe o no está disponible en la cafetería.
+ * HU-03: Crea un pedido a partir de una lista de ítems {productoId, cantidad} en Supabase.
  * @param {string} estudianteId
  * @param {{productoId: string, cantidad: number}[]} lineas
  * @returns {Promise<Object>}
@@ -127,7 +86,7 @@ async function crearPedido(estudianteId, lineas) {
   const itemsToCreate = [];
   let totalPedido = 0;
 
-  // Validar cada producto
+  // Validar cada producto en la base de datos
   for (const { productoId, cantidad } of lineas) {
     const { data: producto, error: errProd } = await supabase
       .from('productos')
@@ -151,24 +110,9 @@ async function crearPedido(estudianteId, lineas) {
 
     itemsToCreate.push({ producto, cantidad });
     totalPedido += producto.precio * cantidad;
-  const pedido = new Pedido({ id: generarId(), estudianteId, items });
-  db.pedidos.push(pedido);
-  return pedido;
-}
-
-/**
- * HU-03: Confirma un pedido verificando disponibilidad. 
- * Hace la transición de estado a CONFIRMADO usando la lógica del modelo.
- * @param {string} pedidoId
- * @returns {Pedido}
- */
-function confirmarPedido(pedidoId) {
-  const pedido = obtenerPedido(pedidoId);
-  if (!pedido) {
-    throw new Error(`Pedido no encontrado: ${pedidoId}`);
   }
 
-  // Descontar stock
+  // Descontar stock en Supabase
   for (const item of itemsToCreate) {
     const nuevoStock = item.producto.stock - item.cantidad;
     const cambios = { stock: nuevoStock };
@@ -187,7 +131,7 @@ function confirmarPedido(pedidoId) {
 
   const pedidoId = await generarId();
 
-  // Insertar pedido
+  // Insertar pedido base
   const nuevoPedido = {
     id: pedidoId,
     estudiante_id: estudianteId,
@@ -198,7 +142,7 @@ function confirmarPedido(pedidoId) {
   const { error: errPed } = await supabase.from('pedidos').insert([nuevoPedido]);
   if (errPed) throw new Error(errPed.message);
 
-  // Insertar items
+  // Insertar los ítems asociados
   const itemsInsert = itemsToCreate.map((item) => ({
     pedido_id: pedidoId,
     producto_id: item.producto.id,
@@ -220,17 +164,10 @@ function confirmarPedido(pedidoId) {
       subtotal: item.producto.precio * item.cantidad,
     })),
   };
-  // BUENA PRÁCTICA POO: Delegamos el cambio de estado al modelo Pedido para validar el flujo correcto
-  const cambioExitoso = pedido.cambiarEstado(ESTADOS.CONFIRMADO);
-  if (!cambioExitoso) {
-    throw new Error(`No se pudo confirmar el pedido desde el estado actual: ${pedido.estado}`);
-  }
-
-  return pedido;
 }
 
 /**
- * Busca un pedido por su ID de forma segura en la base de datos de memoria.
+ * Busca un pedido por su ID de forma segura en la base de datos de Supabase.
  * @param {string} id
  * @returns {Promise<Object|undefined>}
  */
@@ -294,26 +231,25 @@ async function confirmarPedido(pedidoId) {
 
 /**
  * HU-03: Cambia el estado de un pedido siguiendo el flujo de preparación del cafetín.
- * Si el pedido pasa a ENTREGADO, procesa automáticamente los beneficios de fidelidad (HU-01 y HU-07).
+ * Si el pedido pasa a RECOGIDO/ENTREGADO, procesa automáticamente los beneficios de fidelidad (HU-01 y HU-07).
  * @param {string} id
- * @param {string} nuevoEstado Debe ser uno de Pedido.ESTADOS.
- * @returns {Promise<Object>}
  * @param {string} nuevoEstado Debe ser uno de los valores de ESTADOS.
- * @returns {Pedido} El pedido con su estado modificado.
+ * @returns {Promise<Object>}
  */
 async function cambiarEstado(id, nuevoEstado) {
   if (!Object.values(ESTADOS).includes(nuevoEstado)) {
     throw new Error(`Estado invalido: ${nuevoEstado}`);
   }
-  const pedido = await obtenerPedido(id);
   
-  const pedido = obtenerPedido(id);
+  const pedido = await obtenerPedido(id);
   if (!pedido) {
     throw new Error(`Pedido no encontrado: ${id}`);
   }
 
-  // Devolver stock si se cancela
-  if (nuevoEstado === ESTADOS.CANCELADO && pedido.estado !== ESTADOS.CANCELADO) {
+  const estadoAnterior = pedido.estado;
+
+  // Devolver stock si el pedido se cancela
+  if (nuevoEstado === ESTADOS.CANCELADO && estadoAnterior !== ESTADOS.CANCELADO) {
     for (const item of pedido.items) {
       if (item.producto && item.producto.id) {
         const { data: prod } = await supabase
@@ -336,6 +272,7 @@ async function cambiarEstado(id, nuevoEstado) {
     }
   }
 
+  // Actualizar estado en Supabase
   const { error } = await supabase
     .from('pedidos')
     .update({ estado: nuevoEstado })
@@ -343,47 +280,19 @@ async function cambiarEstado(id, nuevoEstado) {
 
   if (error) throw new Error(error.message);
 
-  // Acreditar puntos y registrar sándwich si se entrega (RECOGIDO)
-  if (nuevoEstado === ESTADOS.RECOGIDO && pedido.estado !== ESTADOS.RECOGIDO) {
+  // REGLA DE NEGOCIO INTEGRADA (HU-01 y HU-07): Acreditar puntos y sándwiches acumulados al entregar
+  if ((nuevoEstado === ESTADOS.RECOGIDO || nuevoEstado === 'ENTREGADO') && estadoAnterior !== nuevoEstado) {
     const fidelidadService = require('./fidelidadService');
+    
+    // 1. Acreditar puntos por dinero invertido (S/. 1 = 1 punto)
     await fidelidadService.acreditarPuntos(pedido.estudianteId, pedido.total);
 
-    let sandwichesQty = 0;
-    for (const item of pedido.items) {
-      if (
-        item.producto &&
-        item.producto.categoria &&
-        item.producto.categoria.toLowerCase() === 'sandwich'
-      ) {
-        sandwichesQty += item.cantidad;
-      }
-    }
-    if (sandwichesQty > 0) {
-      await fidelidadService.registrarSandwich(pedido.estudianteId, sandwichesQty);
-    }
-  }
-
-  pedido.estado = nuevoEstado;
-  // Capturamos el estado original antes de intentar cambiarlo
-  const estadoAnterior = pedido.estado;
-
-  // BUENA PRÁCTICA POO: Evaluamos mediante las restricciones de la máquina de estados del modelo Pedido
-  const transicionValida = pedido.cambiarEstado(nuevoEstado);
-  if (!transicionValida) {
-    throw new Error(`Transición de estado no permitida: de ${estadoAnterior} a ${nuevoEstado}`);
-  }
-
-  // REGLA DE NEGOCIO INTEGRADA (HU-01 y HU-07):
-  // Si el pedido se entrega exitosamente al estudiante, le acreditamos sus puntos y sándwiches acumulados
-  if (nuevoEstado === ESTADOS.ENTREGADO && estadoAnterior !== ESTADOS.ENTREGADO) {
-    // 1. Acreditar puntos por dinero invertido (S/. 1 = 1 punto)
-    fidelidadService.acreditarPuntos(pedido.estudianteId, pedido.total);
-
-    // 2. Contabilizar si compró sándwiches para su tarjeta digital de café gratis
+    // 2. Contabilizar si compró sándwiches para su tarjeta digital de café gratis (categoría 'snack' o 'sandwich')
     const cantidadSandwiches = pedido.items.reduce((acc, item) => {
-      if (item.producto && item.producto.categoria && item.producto.categoria.toLowerCase() === 'snack') {
-        // Asumimos que los sándwiches pertenecen a la categoría 'snack' o validamos por nombre si es necesario
-        if (item.producto.nombre.toLowerCase().includes('sandwich') || item.producto.nombre.toLowerCase().includes('sándwich')) {
+      if (item.producto && item.producto.categoria) {
+        const cat = item.producto.categoria.toLowerCase();
+        const nom = item.producto.nombre.toLowerCase();
+        if (cat === 'sandwich' || cat === 'snack' && (nom.includes('sandwich') || nom.includes('sándwich'))) {
           return acc + item.cantidad;
         }
       }
@@ -391,15 +300,16 @@ async function cambiarEstado(id, nuevoEstado) {
     }, 0);
 
     if (cantidadSandwiches > 0) {
-      fidelidadService.registrarSandwich(pedido.estudianteId, cantidadSandwiches);
+      await fidelidadService.registrarSandwich(pedido.estudianteId, cantidadSandwiches);
     }
   }
 
+  pedido.estado = nuevoEstado;
   return pedido;
 }
 
 /**
- * Lista todos los pedidos registrados.
+ * Lista todos los pedidos registrados en Supabase.
  * @returns {Promise<Object[]>}
  */
 async function listarPedidos() {
@@ -445,5 +355,4 @@ module.exports = {
   obtenerPedido,
   cambiarEstado,
   listarPedidos,
-};
 };

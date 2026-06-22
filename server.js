@@ -21,7 +21,7 @@ const authRoutes = require('./src/routes/authRoutes');
 const productoRoutes = require('./src/routes/productoRoutes');
 const pedidoRoutes = require('./src/routes/pedidoRoutes');
 const estudianteRoutes = require('./src/routes/estudianteRoutes');
-const reporteRoutes = require('./src/routes/reporteRoutes');
+const reporterRoutes = require('./src/routes/reporteRoutes');
 const fidelidadRoutes = require('./src/routes/fidelidadRoutes');
 
 const app = express();

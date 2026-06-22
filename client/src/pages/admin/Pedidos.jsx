@@ -1,12 +1,14 @@
 import { useState, useEffect } from 'react';
 import { useToast } from '../../components/Toast';
 import { ClipboardList, Clock, CheckCircle2, Ban, Play, Check, CheckSquare } from 'lucide-react';
-import { supabase } from '../../supabaseClient';
+import { supabase } from "../../context/supabaseClient";
+
 export default function Pedidos() {
   const [pedidos, setPedidos] = useState([]);
   const [loading, setLoading] = useState(true);
   const { toast } = useToast();
 
+  // 1. Función de tu compañero intacta y bien cerrada
   const loadPedidos = () => {
     fetch('/api/pedidos')
       .then(r => r.json())
@@ -17,12 +19,15 @@ export default function Pedidos() {
       .catch(err => {
         toast('Error al cargar pedidos', 'error');
         setLoading(false);
-//  ESTO ES LO QUE PEGAS EN SU LUGAR:
+      });
+  };
+
+  // 2. Tu nuevo useEffect en Tiempo Real perfectamente estructurado
   useEffect(() => {
-    // 1. Carga inicial de datos de tu compañero
+    // Carga inicial de datos
     loadPedidos();
     
-    // 2. Suscripción en Tiempo Real con Supabase
+    // Suscripción en Tiempo Real con Supabase
     const canalPedidos = supabase
       .channel('cambios-pedidos-vendedor')
       .on(
@@ -30,18 +35,19 @@ export default function Pedidos() {
         { event: '*', schema: 'public', table: 'pedidos' },
         (payload) => {
           console.log('¡Actualización en vivo detectada!', payload);
-          // Re-usamos la función de tu compañero para refrescar la lista
+          // Re-usamos la función para refrescar la lista al instante
           loadPedidos(); 
         }
       )
       .subscribe();
 
-    // 3. Limpieza de la suscripción al desmontar el componente
+    // Limpieza de la suscripción al desmontar el componente
     return () => {
       supabase.removeChannel(canalPedidos);
     };
   }, []);
 
+  // 3. Todo el resto de funciones y el renderizado Kanban de tu compañero quedan IGUALES
   const cambiarEstado = async (id, estado) => {
     try {
       const res = await fetch(`/api/pedidos/${id}/estado`, {
@@ -235,4 +241,4 @@ export default function Pedidos() {
       </div>
     </div>
   );
-}
+} 

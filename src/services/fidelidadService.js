@@ -158,12 +158,155 @@ async function canjearCafeGratis(estudianteId) {
   return { cafesGratis: nuevosCafes };
 }
 
+/**
+ * HU-XX: Obtener el ranking de estudiantes con mayor puntaje.
+ * @param {number} limite Cantidad de estudiantes a retornar en el top.
+ */
+async function obtenerRankingClientes(limite = 10) {
+  const { data, error } = await supabase
+    .from('estudiantes')
+    .select('id, nombre, puntos')
+    .order('puntos', { ascending: false }) // Ordena de mayor a menor puntos
+    .limit(limite);
+
+  if (error) {
+    throw new Error(`Error al obtener el ranking: ${error.message}`);
+  }
+  return data;
+}
+
+/**
+ * HU-XX: Crear una nueva regla de fidelidad dinámica (Vendedor).
+ */
+async function crearReglaFidelidad({ nombre, productoCriterioId, cantidadCriterio, productoPremioId }) {
+  const { data, error } = await supabase
+    .from('reglas_fidelidad')
+    .insert([
+      { 
+        nombre, 
+        producto_criterio_id: productoCriterioId, 
+        cantidad_criterio: cantidadCriterio, 
+        producto_premio_id: productoPremioId,
+        activo: true 
+      }
+    ])
+    .select()
+    .single();
+
+  if (error) {
+    throw new Error(`Error al crear la regla de fidelidad: ${error.message}`);
+  }
+  return data;
+}
+
+/**
+ * HU-XX: Listar todas las reglas de fidelidad activas en el sistema.
+ */
+async function listarReglasFidelidad() {
+  const { data, error } = await supabase
+    .from('reglas_fidelidad')
+    .select('*')
+    .eq('activo', true);
+
+  if (error) {
+    throw new Error(`Error al listar las reglas: ${error.message}`);
+  }
+  return data;
+}
+/**
+ * HU-XX: Actualiza el progreso de compra de un estudiante de manera dinámica
+ * basándose en las reglas de fidelidad activas.
+ */
+async function actualizarProgresoCompra(estudianteId, productoId, cantidad) {
+  if (cantidad <= 0) return { message: 'Cantidad inválida' };
+
+  // 1. Buscar si existe una regla activa para este producto específico
+  const { data: regla, error: errorRegla } = await supabase
+    .from('reglas_fidelidad')
+    .select('*')
+    .eq('producto_criterio_id', productoId)
+    .eq('activo', true)
+    .maybeSingle();
+
+  if (errorRegla) throw new Error(`Error buscando regla: errorRegla.message`);
+  
+  // Si no hay ninguna regla activa para este producto, no hay progreso que actualizar
+  if (!regla) return { message: 'Sin reglas activas para este producto' };
+
+  // 2. Obtener o inicializar el progreso del estudiante para este producto
+  const { data: progreso, error: errorProgreso } = await supabase
+    .from('progreso_fidelidad')
+    .select('*')
+    .eq('estudiante_id', estudianteId)
+    .eq('producto_criterio_id', productoId)
+    .maybeSingle();
+
+  if (errorProgreso) throw new Error(`Error buscando progreso: ${errorProgreso.message}`);
+
+  let cantidadAcumulada = progreso ? progreso.cantidad_acumulada : 0;
+  let premiosDisponibles = progreso ? progreso.premios_disponibles : 0;
+
+  // 3. Sumar la nueva cantidad comprada
+  cantidadAcumulada += cantidad;
+
+  // 4. Calcular de forma dinámica cuántos premios nuevos ganó
+  const nuevosPremios = Math.floor(cantidadAcumulada / regla.cantidad_criterio);
+  
+  if (nuevosPremios > 0) {
+    premiosDisponibles += nuevosPremios;
+    // El residuo (%) se mantiene acumulado para la siguiente meta
+    cantidadAcumulada = cantidadAcumulada % regla.cantidad_criterio;
+  }
+
+  // 5. Guardar o actualizar el registro en 'progreso_fidelidad'
+  let resultado;
+  if (progreso) {
+    // Si ya tenía historial, actualizamos el registro existente
+    const { data, error } = await supabase
+      .from('progreso_fidelidad')
+      .update({ cantidad_acumulada: cantidadAcumulada, premios_disponibles: premiosDisponibles })
+      .eq('id', progreso.id)
+      .select()
+      .single();
+      
+    if (error) throw new Error(error.message);
+    resultado = data;
+  } else {
+    // Si es su primera compra de este producto bajo esta regla, insertamos un registro nuevo
+    const { data, error } = await supabase
+      .from('progreso_fidelidad')
+      .insert([
+        {
+          estudiante_id: estudianteId,
+          producto_criterio_id: productoId,
+          cantidad_acumulada: cantidadAcumulada,
+          premios_disponibles: premiosDisponibles
+        }
+      ])
+      .select()
+      .single();
+
+    if (error) throw new Error(error.message);
+    resultado = data;
+  }
+
+  return {
+    regla: regla.nombre,
+    cantidadAcumulada,
+    premiosDisponibles
+  };
+}
+
 module.exports = {
   calcularPuntos,
   acreditarPuntos,
   canjearPuntos,
   registrarSandwich,
   obtenerBeneficios,
+  canjearCafeGratis,
+  obtenerRankingClientes,
+  crearReglaFidelidad,
+  listarReglasFidelidad,
   canjearCafeGratis,
   SOLES_POR_PUNTO,
   SANDWICHES_PARA_CAFE,
