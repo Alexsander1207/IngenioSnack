@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Pizza, CupSoda, Cookie, ShoppingCart, Search } from 'lucide-react';
+import { Pizza, CupSoda, Cookie, ShoppingCart, Search, Gift, Star } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useAppContext } from '../../context/AppContext';
 import { useToast } from '../../components/Toast';
@@ -18,6 +18,7 @@ const getCategoryEmoji = (cat) => {
 
 export default function Menu() {
   const [productos, setProductos] = useState([]);
+  const [promociones, setPromociones] = useState([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('Todos');
@@ -26,9 +27,16 @@ export default function Menu() {
   const { toast } = useToast();
 
   useEffect(() => {
-    fetch('/api/productos')
-      .then(r => r.json())
-      .then(data => { setProductos(data); setLoading(false); })
+    Promise.all([
+      fetch('/api/productos').then(r => r.json()),
+      fetch('/api/promociones').then(r => r.json()).catch(() => []),
+    ])
+      .then(([prodData, promoData]) => {
+        setProductos(prodData);
+        // Solo mostrar promociones activas y disponibles
+        setPromociones(Array.isArray(promoData) ? promoData.filter(p => p.disponible) : []);
+        setLoading(false);
+      })
       .catch(() => { toast('Error al cargar menú', 'error'); setLoading(false); });
   }, []);
 
@@ -48,7 +56,17 @@ export default function Menu() {
     : [selectedCategory];
 
   const totalItems = cart.reduce((acc, c) => acc + c.cantidad, 0);
-  const totalAmount = cart.reduce((acc, c) => acc + (c.producto.precio * c.cantidad), 0);
+  const totalAmount = cart.reduce((acc, c) => {
+    if (c.tipo === 'promocion') return acc + (c.promocion.precio * c.cantidad);
+    const precio = c.producto?.precio || 0;
+    return acc + (precio * c.cantidad);
+  }, 0);
+
+  // Filtrar promociones por búsqueda
+  const filteredPromos = promociones.filter(p =>
+    p.nombre.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    (p.descripcion && p.descripcion.toLowerCase().includes(searchQuery.toLowerCase()))
+  );
 
   return (
     <div className="screen">
@@ -96,7 +114,111 @@ export default function Menu() {
       </div>
 
       <div id="menu-content">
-        {filteredProducts.length === 0 ? (
+        {/* ── SECCIÓN DE PROMOCIONES ── */}
+        {filteredPromos.length > 0 && selectedCategory === 'Todos' && (
+          <div className="menu-category" style={{ marginBottom: '32px' }}>
+            <div className="category-title" style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '14px' }}>
+              <Gift size={18} /> 🎁 Combos y Promociones
+            </div>
+            <div className="product-grid">
+              {filteredPromos.map(promo => {
+                const promoItemId = `promo_${promo.id}`;
+                const cartItem = cart.find(c => c.itemId === promoItemId);
+                const qty = cartItem ? cartItem.cantidad : 0;
+
+                // Calcular precio original sumando los productos
+                const precioOriginal = promo.items
+                  ? promo.items.reduce((sum, it) => sum + ((it.producto?.precio || 0) * it.cantidad), 0)
+                  : 0;
+
+                return (
+                  <div
+                    key={promo.id}
+                    className="store-card"
+                    style={{ border: '2px solid rgba(76, 175, 80, 0.25)' }}
+                  >
+                    {/* Imagen del combo */}
+                    <div className="store-card-img-wrap" style={{
+                      background: 'linear-gradient(135deg, #4CAF50 0%, #2E7D32 100%)',
+                      position: 'relative'
+                    }}>
+                      <span className="store-card-emoji" style={{ fontSize: '36px' }}>🎁</span>
+                      <div className="store-card-badge badge-promo" style={{
+                        background: 'linear-gradient(135deg, #FF6B35 0%, #F44336 100%)',
+                        color: '#fff', fontWeight: 800
+                      }}>
+                        COMBO <Star size={10} style={{ marginLeft: '2px' }} />
+                      </div>
+                      {qty > 0 && <div className="store-card-qty-badge">{qty}</div>}
+                    </div>
+
+                    {/* Body */}
+                    <div className="store-card-body">
+                      <div className="store-card-name" title={promo.nombre} style={{ fontWeight: 800 }}>
+                        {promo.nombre}
+                      </div>
+
+                      {/* Productos incluidos */}
+                      <div style={{ fontSize: '11px', color: '#8A6A55', lineHeight: '1.4', margin: '4px 0' }}>
+                        {promo.items && promo.items.map((it, idx) => (
+                          <span key={idx}>
+                            {it.cantidad}× {it.producto?.nombre || 'Producto'}
+                            {idx < promo.items.length - 1 ? ' + ' : ''}
+                          </span>
+                        ))}
+                      </div>
+
+                      {/* Precio */}
+                      <div className="store-card-price-row">
+                        <div>
+                          {precioOriginal > promo.precio && (
+                            <span style={{
+                              textDecoration: 'line-through', color: '#B0A090',
+                              fontSize: '12px', marginRight: '6px'
+                            }}>
+                              S/ {precioOriginal.toFixed(2)}
+                            </span>
+                          )}
+                          <span className="store-card-price" style={{ color: '#4CAF50' }}>
+                            S/ {promo.precio.toFixed(2)}
+                          </span>
+                        </div>
+
+                        {qty > 0 ? (
+                          <div className="store-qty-controls">
+                            <button
+                              className="store-qty-btn minus"
+                              onClick={() => changeQty(promoItemId, -1)}
+                            >
+                              −
+                            </button>
+                            <span className="store-qty-val">{qty}</span>
+                            <button
+                              className="store-qty-btn plus"
+                              onClick={() => addToCart(promo, 'promocion')}
+                            >
+                              +
+                            </button>
+                          </div>
+                        ) : (
+                          <button
+                            className="store-btn-add"
+                            onClick={() => addToCart(promo, 'promocion')}
+                          >
+                            +
+                          </button>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        )}
+
+        {/* ── PRODUCTOS INDIVIDUALES ── */}
+        {filteredProducts.length === 0 && filteredPromos.length === 0 ? (
           <div className="empty-state" style={{ padding: '60px 20px', textAlign: 'center' }}>
             <span style={{ fontSize: '48px', display: 'block', marginBottom: '12px' }}>🔍</span>
             <h3 style={{ fontSize: '16px', fontWeight: 800 }}>No se encontraron productos</h3>
@@ -114,7 +236,8 @@ export default function Menu() {
                 </div>
                 <div className="product-grid">
                   {catProducts.map(p => {
-                    const item = cart.find(c => c.producto.id === p.id);
+                    const itemId = p.id;
+                    const item = cart.find(c => (c.itemId === itemId) || (c.producto && c.producto.id === p.id));
                     const qty = item ? item.cantidad : 0;
                     const ua = !p.disponible;
 
@@ -174,7 +297,7 @@ export default function Menu() {
                                 <div className="store-qty-controls">
                                   <button
                                     className="store-qty-btn minus"
-                                    onClick={() => changeQty(p.id, -1)}
+                                    onClick={() => changeQty(itemId, -1)}
                                   >
                                     −
                                   </button>
