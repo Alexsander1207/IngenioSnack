@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useToast } from '../../components/Toast';
 import { ClipboardList, Clock, CheckCircle2, Ban, Play, Check, CheckSquare } from 'lucide-react';
-
+import { supabase } from '../../supabaseClient';
 export default function Pedidos() {
   const [pedidos, setPedidos] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -17,20 +17,29 @@ export default function Pedidos() {
       .catch(err => {
         toast('Error al cargar pedidos', 'error');
         setLoading(false);
-      });
-  };
-
+//  ESTO ES LO QUE PEGAS EN SU LUGAR:
   useEffect(() => {
+    // 1. Carga inicial de datos de tu compañero
     loadPedidos();
     
-    // Poll for new orders every 5s for real-time responsiveness
-    const interval = setInterval(() => {
-      fetch('/api/pedidos')
-        .then(r => r.json())
-        .then(data => setPedidos(data))
-        .catch(() => {});
-    }, 5000);
-    return () => clearInterval(interval);
+    // 2. Suscripción en Tiempo Real con Supabase
+    const canalPedidos = supabase
+      .channel('cambios-pedidos-vendedor')
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'pedidos' },
+        (payload) => {
+          console.log('¡Actualización en vivo detectada!', payload);
+          // Re-usamos la función de tu compañero para refrescar la lista
+          loadPedidos(); 
+        }
+      )
+      .subscribe();
+
+    // 3. Limpieza de la suscripción al desmontar el componente
+    return () => {
+      supabase.removeChannel(canalPedidos);
+    };
   }, []);
 
   const cambiarEstado = async (id, estado) => {
