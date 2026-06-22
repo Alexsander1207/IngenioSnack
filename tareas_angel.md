@@ -11,31 +11,22 @@ Esta guía detalla tu parte del trabajo para el desarrollo colaborativo en Ingen
 
 ---
 
-## 2. Base de Datos (Supabase SQL)
-Deberás crear y modificar las tablas de fidelidad en Supabase. Ejecuta este script en el SQL Editor de Supabase:
+## 2. Estructura de Base de Datos (Ya configurada en Supabase)
+El administrador del proyecto ya configuró las tablas en Supabase. Tú interactuarás con las siguientes tablas:
 
-```sql
--- Tabla para definir Reglas de Premios de Fidelidad Dinámicas
-create table if not exists reglas_fidelidad (
-  id uuid default gen_random_uuid() primary key,
-  nombre text not null,
-  producto_criterio_id uuid references productos(id) on delete cascade, -- Producto que debe comprar
-  cantidad_criterio integer not null check (cantidad_criterio >= 1),     -- Cuántas unidades comprar
-  producto_premio_id uuid references productos(id) on delete cascade,   -- Qué producto se lleva gratis
-  activo boolean not null default true,
-  creado_en timestamp with time zone default timezone('utc'::text, now()) not null
-);
-
--- Tabla para almacenar los contadores de progreso de cada estudiante
-create table if not exists progreso_fidelidad (
-  id uuid default gen_random_uuid() primary key,
-  estudiante_id text references estudiantes(id) on delete cascade,
-  producto_criterio_id uuid references productos(id) on delete cascade,
-  cantidad_acumulada integer not null default 0,
-  premios_disponibles integer not null default 0,
-  unique(estudiante_id, producto_criterio_id)
-);
-```
+* **Tabla `reglas_fidelidad`**:
+  * `id` (uuid, primary key)
+  * `nombre` (text)
+  * `producto_criterio_id` (uuid, foreign key)
+  * `cantidad_criterio` (integer)
+  * `producto_premio_id` (uuid, foreign key)
+  * `activo` (boolean)
+* **Tabla `progreso_fidelidad`**:
+  * `id` (uuid, primary key)
+  * `estudiante_id` (text, foreign key)
+  * `producto_criterio_id` (uuid, foreign key)
+  * `cantidad_acumulada` (integer)
+  * `premios_disponibles` (integer)
 
 ---
 

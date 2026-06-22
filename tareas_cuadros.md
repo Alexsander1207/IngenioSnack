@@ -11,21 +11,15 @@ Esta guía detalla tu parte del trabajo para el desarrollo colaborativo en Ingen
 
 ---
 
-## 2. Base de Datos (Supabase SQL)
-Deberás crear y relacionar la tabla de categorías. Ejecuta este script en el SQL Editor de Supabase:
+## 2. Estructura de Base de Datos (Ya configurada en Supabase)
+El administrador del proyecto ya configuró las tablas en Supabase. Tú interactuarás con la tabla `categorias` y la columna agregada a `productos`:
 
-```sql
--- Tabla de Categorías
-create table if not exists categorias (
-  id uuid default gen_random_uuid() primary key,
-  nombre text not null unique,
-  creado_en timestamp with time zone default timezone('utc'::text, now()) not null
-);
-
--- Modificar productos para relacionarlo a categorías
-alter table productos 
-add column if not exists categoria_id uuid references categorias(id) on delete set null;
-```
+* **Tabla `categorias`**:
+  * `id` (uuid, primary key)
+  * `nombre` (text)
+  * `creado_en` (timestamp)
+* **Tabla `productos`**:
+  * Utilizarás la nueva relación `categoria_id` (uuid, foreign key hacia `categorias.id`).
 
 ---
 

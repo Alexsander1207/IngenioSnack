@@ -10,29 +10,21 @@ Esta guía detalla tu parte del trabajo para el desarrollo colaborativo en Ingen
 
 ---
 
-## 2. Base de Datos (Supabase SQL)
-Deberás crear las tablas para soportar las promociones y su relación con los productos. Ejecuta este script en el SQL Editor de Supabase:
+## 2. Estructura de Base de Datos (Ya configurada en Supabase)
+El administrador del proyecto ya configuró las tablas en Supabase. Tú interactuarás con las siguientes tablas:
 
-```sql
--- Tabla de Promociones (Combos)
-create table if not exists promociones (
-  id uuid default gen_random_uuid() primary key,
-  nombre text not null,
-  descripcion text,
-  precio numeric not null check (precio > 0),
-  disponible boolean not null default true,
-  activo boolean not null default true,
-  creado_en timestamp with time zone default timezone('utc'::text, now()) not null
-);
-
--- Tabla intermedia para asociar productos a una promocion
-create table if not exists items_promocion (
-  id uuid default gen_random_uuid() primary key,
-  promocion_id uuid references promociones(id) on delete cascade,
-  producto_id uuid references productos(id) on delete cascade,
-  cantidad integer not null default 1 check (cantidad >= 1)
-);
-```
+* **Tabla `promociones`**:
+  * `id` (uuid, primary key)
+  * `nombre` (text)
+  * `descripcion` (text)
+  * `precio` (numeric)
+  * `disponible` (boolean)
+  * `activo` (boolean)
+* **Tabla `items_promocion`** (Productos que componen el combo):
+  * `id` (uuid, primary key)
+  * `promocion_id` (uuid, foreign key)
+  * `producto_id` (uuid, foreign key)
+  * `cantidad` (integer)
 
 ---
 
