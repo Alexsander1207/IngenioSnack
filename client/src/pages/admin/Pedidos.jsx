@@ -1,7 +1,13 @@
 import { useState, useEffect } from 'react';
 import { useToast } from '../../components/Toast';
 import { ClipboardList, Clock, CheckCircle2, Ban, Play, Check, CheckSquare } from 'lucide-react';
-import { supabase } from "../../context/AppContext";
+import { createClient } from '@supabase/supabase-client';
+
+const supabaseUrl = 'TU_URL_DE_SUPABASE';
+const supabaseKey = 'TU_ANON_KEY_DE_SUPABASE';
+export const supabase = createClient(supabaseUrl, supabaseKey);
+
+
 
 export default function Pedidos() {
   const [pedidos, setPedidos] = useState([]);
