@@ -1,11 +1,12 @@
 import { useState } from 'react';
 import { Routes, Route, Navigate, useNavigate, useLocation } from 'react-router-dom';
-import { LogOut, LayoutDashboard, Package, Archive, ClipboardList, UserCircle, Menu as MenuIcon } from 'lucide-react';
+import { LogOut, LayoutDashboard, Package, Archive, ClipboardList, UserCircle, Menu as MenuIcon, Gift } from 'lucide-react';
 import { useAppContext } from '../context/AppContext';
 import Panel from './admin/Panel';
 import Productos from './admin/Productos';
 import Inventario from './admin/Inventario';
 import Pedidos from './admin/Pedidos';
+import Promociones from './admin/Promociones';
 
 export default function AdminPortal() {
   const { user, logout } = useAppContext();
@@ -23,6 +24,7 @@ export default function AdminPortal() {
     { id: 'productos', path: '/admin/productos', icon: Package, label: 'Productos', shortLabel: 'Productos' },
     { id: 'inventario', path: '/admin/inventario', icon: Archive, label: 'Inventario Rápido', shortLabel: 'Inventario' },
     { id: 'pedidos', path: '/admin/pedidos', icon: ClipboardList, label: 'Gestión Pedidos', shortLabel: 'Pedidos' },
+    { id: 'promociones', path: '/admin/promociones', icon: Gift, label: 'Promociones', shortLabel: 'Combos' },
   ];
 
   return (
@@ -73,6 +75,7 @@ export default function AdminPortal() {
           <Route path="productos" element={<Productos />} />
           <Route path="inventario" element={<Inventario />} />
           <Route path="pedidos" element={<Pedidos />} />
+          <Route path="promociones" element={<Promociones />} />
           <Route path="reporte" element={<Navigate to="/admin/panel" replace />} />
           <Route path="*" element={<Navigate to="panel" />} />
         </Routes>

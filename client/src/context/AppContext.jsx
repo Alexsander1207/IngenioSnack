@@ -33,20 +33,28 @@ export const AppProvider = ({ children }) => {
     setConfirmedOrder(null);
   };
 
-  const addToCart = (producto) => {
+  const addToCart = (item, tipo = 'producto') => {
     setCart(prev => {
-      const ex = prev.find(c => c.producto.id === producto.id);
+      const itemId = tipo === 'promocion' ? `promo_${item.id}` : item.id;
+      const ex = prev.find(c => c.itemId === itemId);
       if (ex) {
-        return prev.map(c => c.producto.id === producto.id ? { ...c, cantidad: c.cantidad + 1 } : c);
+        return prev.map(c => c.itemId === itemId ? { ...c, cantidad: c.cantidad + 1 } : c);
       }
-      return [...prev, { producto, cantidad: 1 }];
+      if (tipo === 'promocion') {
+        return [...prev, { itemId, tipo: 'promocion', promocion: item, cantidad: 1 }];
+      }
+      return [...prev, { itemId, tipo: 'producto', producto: item, cantidad: 1 }];
     });
   };
 
-  const changeQty = (productoId, delta) => {
+  const changeQty = (itemId, delta) => {
     setCart(prev => {
       return prev.map(c => {
-        if (c.producto.id === productoId) {
+        if (c.itemId === itemId) {
+          return { ...c, cantidad: c.cantidad + delta };
+        }
+        // Legacy support: match by producto.id for items without itemId
+        if (!c.itemId && c.producto && c.producto.id === itemId) {
           return { ...c, cantidad: c.cantidad + delta };
         }
         return c;

@@ -63,10 +63,12 @@ function validarDisponibilidadPedido(pedido) {
 }
 
 /**
- * Crea un pedido a partir de una lista de items {productoId, cantidad}.
- * Lanza error si algun producto no existe o no esta disponible.
+ * Crea un pedido a partir de una lista de items.
+ * Cada línea puede tener {productoId, cantidad} para producto individual
+ * o {promocionId, cantidad} para un combo/promoción.
+ * Lanza error si algún producto/promoción no existe o no está disponible.
  * @param {string} estudianteId
- * @param {{productoId: string, cantidad: number}[]} lineas
+ * @param {{productoId?: string, promocionId?: string, cantidad: number}[]} lineas
  * @returns {Promise<Object>}
  */
 async function crearPedido(estudianteId, lineas) {
@@ -75,37 +77,104 @@ async function crearPedido(estudianteId, lineas) {
   }
 
   const itemsToCreate = [];
+  // Stock changes to apply: { productoId: { producto, cantidadTotal } }
+  const stockChanges = {};
   let totalPedido = 0;
 
-  // Validar cada producto
-  for (const { productoId, cantidad } of lineas) {
-    const { data: producto, error: errProd } = await supabase
-      .from('productos')
-      .select('*')
-      .eq('id', productoId)
-      .maybeSingle();
-
-    if (errProd) throw new Error(errProd.message);
-    if (!producto) {
-      throw new Error(`Producto no encontrado: ${productoId}`);
-    }
-    if (!producto.disponible) {
-      throw new Error(`Producto no disponible: ${producto.nombre}`);
-    }
+  for (const linea of lineas) {
+    const cantidad = linea.cantidad;
     if (cantidad < 1) {
       throw new Error('La cantidad debe ser al menos 1.');
     }
-    if (producto.stock < cantidad) {
-      throw new Error(`Stock insuficiente para ${producto.nombre}. Disponible: ${producto.stock}`);
-    }
 
-    itemsToCreate.push({ producto, cantidad });
-    totalPedido += producto.precio * cantidad;
+    if (linea.promocionId) {
+      // ── Línea de COMBO/PROMOCIÓN ────────────────────────────
+      const { data: promo, error: errPromo } = await supabase
+        .from('promociones')
+        .select('*')
+        .eq('id', linea.promocionId)
+        .maybeSingle();
+
+      if (errPromo) throw new Error(errPromo.message);
+      if (!promo) throw new Error(`Promoción no encontrada: ${linea.promocionId}`);
+      if (!promo.activo) throw new Error(`Promoción no activa: ${promo.nombre}`);
+      if (!promo.disponible) throw new Error(`Promoción no disponible: ${promo.nombre}`);
+
+      // Obtener los productos que componen el combo
+      const { data: promoItems, error: errPI } = await supabase
+        .from('items_promocion')
+        .select('*, productos(*)')
+        .eq('promocion_id', promo.id);
+
+      if (errPI) throw new Error(errPI.message);
+
+      // Validar stock de cada producto individual del combo
+      for (const pi of promoItems) {
+        const prod = pi.productos;
+        const cantidadNecesaria = pi.cantidad * cantidad; // cantidad del item × cantidad del combo pedido
+        if (!prod.disponible) {
+          throw new Error(`Producto del combo no disponible: ${prod.nombre}`);
+        }
+
+        // Acumular stock changes
+        if (!stockChanges[prod.id]) {
+          stockChanges[prod.id] = { producto: prod, cantidadTotal: 0 };
+        }
+        stockChanges[prod.id].cantidadTotal += cantidadNecesaria;
+      }
+
+      // Usar el precio especial de la promoción
+      totalPedido += promo.precio * cantidad;
+
+      itemsToCreate.push({
+        tipo: 'promocion',
+        promocion: promo,
+        promoItems,
+        cantidad,
+        precioUnitario: promo.precio,
+      });
+
+    } else if (linea.productoId) {
+      // ── Línea de PRODUCTO INDIVIDUAL ────────────────────────
+      const { data: producto, error: errProd } = await supabase
+        .from('productos')
+        .select('*')
+        .eq('id', linea.productoId)
+        .maybeSingle();
+
+      if (errProd) throw new Error(errProd.message);
+      if (!producto) throw new Error(`Producto no encontrado: ${linea.productoId}`);
+      if (!producto.disponible) throw new Error(`Producto no disponible: ${producto.nombre}`);
+
+      // Acumular stock changes
+      if (!stockChanges[producto.id]) {
+        stockChanges[producto.id] = { producto, cantidadTotal: 0 };
+      }
+      stockChanges[producto.id].cantidadTotal += cantidad;
+
+      totalPedido += producto.precio * cantidad;
+
+      itemsToCreate.push({
+        tipo: 'producto',
+        producto,
+        cantidad,
+        precioUnitario: producto.precio,
+      });
+
+    } else {
+      throw new Error('Cada línea debe tener productoId o promocionId.');
+    }
   }
 
-  // Descontar stock
-  for (const item of itemsToCreate) {
-    const nuevoStock = item.producto.stock - item.cantidad;
+  // Validar stock acumulado y descontar
+  for (const [prodId, { producto, cantidadTotal }] of Object.entries(stockChanges)) {
+    if (producto.stock < cantidadTotal) {
+      throw new Error(
+        `Stock insuficiente para ${producto.nombre}. Disponible: ${producto.stock}, necesario: ${cantidadTotal}`
+      );
+    }
+
+    const nuevoStock = producto.stock - cantidadTotal;
     const cambios = { stock: nuevoStock };
     if (nuevoStock === 0) {
       cambios.disponible = false;
@@ -115,7 +184,7 @@ async function crearPedido(estudianteId, lineas) {
     const { error: errUp } = await supabase
       .from('productos')
       .update(cambios)
-      .eq('id', item.producto.id);
+      .eq('id', prodId);
 
     if (errUp) throw new Error(errUp.message);
   }
@@ -133,13 +202,24 @@ async function crearPedido(estudianteId, lineas) {
   const { error: errPed } = await supabase.from('pedidos').insert([nuevoPedido]);
   if (errPed) throw new Error(errPed.message);
 
-  // Insertar items
-  const itemsInsert = itemsToCreate.map((item) => ({
-    pedido_id: pedidoId,
-    producto_id: item.producto.id,
-    cantidad: item.cantidad,
-    precio_unitario: item.producto.precio,
-  }));
+  // Insertar items del pedido
+  const itemsInsert = itemsToCreate.map((item) => {
+    if (item.tipo === 'promocion') {
+      return {
+        pedido_id: pedidoId,
+        producto_id: item.promoItems[0]?.productos?.id || null,
+        promocion_id: item.promocion.id,
+        cantidad: item.cantidad,
+        precio_unitario: item.precioUnitario,
+      };
+    }
+    return {
+      pedido_id: pedidoId,
+      producto_id: item.producto.id,
+      cantidad: item.cantidad,
+      precio_unitario: item.precioUnitario,
+    };
+  });
 
   const { error: errItems } = await supabase.from('items_pedido').insert(itemsInsert);
   if (errItems) throw new Error(errItems.message);
@@ -149,11 +229,20 @@ async function crearPedido(estudianteId, lineas) {
     estudianteId,
     estado: 'PENDIENTE',
     total: totalPedido,
-    items: itemsToCreate.map((item) => ({
-      producto: item.producto,
-      cantidad: item.cantidad,
-      subtotal: item.producto.precio * item.cantidad,
-    })),
+    items: itemsToCreate.map((item) => {
+      if (item.tipo === 'promocion') {
+        return {
+          promocion: item.promocion,
+          cantidad: item.cantidad,
+          subtotal: item.precioUnitario * item.cantidad,
+        };
+      }
+      return {
+        producto: item.producto,
+        cantidad: item.cantidad,
+        subtotal: item.precioUnitario * item.cantidad,
+      };
+    }),
   };
 }
 

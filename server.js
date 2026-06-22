@@ -22,6 +22,7 @@ const productoRoutes = require('./src/routes/productoRoutes');
 const pedidoRoutes = require('./src/routes/pedidoRoutes');
 const estudianteRoutes = require('./src/routes/estudianteRoutes');
 const reporteRoutes = require('./src/routes/reporteRoutes');
+const promocionRoutes = require('./src/routes/promocionRoutes');
 
 const app = express();
 app.use(express.json());
@@ -68,6 +69,7 @@ app.use('/api/productos', productoRoutes);
 app.use('/api/pedidos', pedidoRoutes);
 app.use('/api/estudiante', estudianteRoutes);
 app.use('/api/reporte', reporteRoutes);
+app.use('/api/promociones', promocionRoutes);
 
 // Servir SPA después de todas las rutas API
 app.use(express.static(path.join(__dirname, 'public')));
