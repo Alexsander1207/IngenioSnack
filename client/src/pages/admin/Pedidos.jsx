@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useToast } from '../../components/Toast';
 import { ClipboardList, Clock, CheckCircle2, Ban, Play, Check, CheckSquare } from 'lucide-react';
-import { supabase } from "../../context/supabaseClient";
+import { supabase } from "../../supabase";
 
 export default function Pedidos() {
   const [pedidos, setPedidos] = useState([]);
