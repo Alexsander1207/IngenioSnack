@@ -1,4 +1,4 @@
-# Tareas de Angel: Fidelidad Avanzada, Premios y Ranking de Clientes
+# Tareas de Angel: Fidelidad Avanzada, Premios, Ranking de Clientes y Pedidos en Tiempo Real
 
 Esta guía detalla tu parte del trabajo para el desarrollo colaborativo en IngenioSnack.
 
@@ -8,6 +8,7 @@ Esta guía detalla tu parte del trabajo para el desarrollo colaborativo en Ingen
 * Mostrar al **Vendedor** un Ranking de Clientes más fieles (estudiantes ordenados por puntos acumulados o cantidad de compras).
 * Permitir al **Vendedor** definir dinámicamente nuevas reglas de fidelidad/premios (ej: "Por cada 10 compras de café, el 11 es gratis", o definir un producto X de premio por cada Y compras de un producto Z).
 * Integrar la lógica en la tienda del **Estudiante** para que este pueda ver sus premios acumulados y reclamarlos/canjearlos.
+* Implementar la actualización en **tiempo real** en la pantalla del vendedor cuando entren nuevos pedidos.
 
 ---
 
@@ -59,6 +60,11 @@ El administrador del proyecto ya configuró las tablas en Supabase. Tú interact
 ### Panel del Estudiante (Visualización y Canje)
 * En el perfil o panel del estudiante (`client/src/pages/student/Profile.jsx` o `Menu.jsx`), mostrar el progreso dinámico hacia sus premios gratis (ej. barra de progreso basada en las reglas activas).
 * Permitir al estudiante hacer clic en "Canjear" cuando tenga un premio disponible.
+
+### Pedidos en Tiempo Real (Supabase Realtime)
+* **Archivo a modificar**: [Pedidos.jsx](file:///c:/Users/Usuario/IngenioSnack/client/src/pages/admin/Pedidos.jsx)
+  * Actualmente el panel Kanban usa un temporizador (polling) de 5 segundos para refrescar.
+  * Deberás cambiar esto e implementar una suscripción de **Supabase Realtime** escuchando eventos `INSERT` y `UPDATE` en la tabla `pedidos`. Esto permitirá actualizar la lista de pedidos al instante cuando un estudiante envíe un pedido o cambie su estado.
 
 ---
 
