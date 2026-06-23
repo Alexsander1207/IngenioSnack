@@ -1,170 +1,201 @@
-import { useState, useEffect } from 'react';
-import { Plus, Trash2, FolderOpen } from 'lucide-react';
+import { useEffect, useState } from 'react';
+import { FolderOpen, Plus, Trash2 } from 'lucide-react';
 import { useToast } from '../../components/Toast';
+
+async function fetchCategoriasRequest() {
+  const res = await fetch('/api/categorias');
+  const data = await res.json();
+
+  if (!res.ok || data.error) {
+    throw new Error(data.error || 'No se pudieron cargar las categorias.');
+  }
+
+  return Array.isArray(data) ? data : [];
+}
 
 export default function Categorias() {
   const [categorias, setCategorias] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
   const [nombre, setNombre] = useState('');
+  const [feedback, setFeedback] = useState(null);
   const { toast } = useToast();
 
-  const loadCategorias = () => {
-    fetch('/api/categorias')
-      .then(r => r.json())
-      .then(data => {
-        setCategorias(data);
-        setLoading(false);
-      })
-      .catch(() => {
-        toast('Error al cargar categorías', 'error');
-        setLoading(false);
-      });
+  const loadCategorias = async ({ preserveFeedback = false } = {}) => {
+    setLoading(true);
+    if (!preserveFeedback) setFeedback(null);
+
+    try {
+      const data = await fetchCategoriasRequest();
+      setCategorias(data);
+    } catch (err) {
+      const message = err.message || 'Error al cargar categorias.';
+      setFeedback({ type: 'error', message });
+      toast(message, 'error');
+    } finally {
+      setLoading(false);
+    }
   };
 
   useEffect(() => {
-    loadCategorias();
+    let ignore = false;
+
+    fetchCategoriasRequest()
+      .then((data) => {
+        if (!ignore) setCategorias(data);
+      })
+      .catch((err) => {
+        if (!ignore) {
+          const message = err.message || 'Error al cargar categorias.';
+          setFeedback({ type: 'error', message });
+        }
+      })
+      .finally(() => {
+        if (!ignore) setLoading(false);
+      });
+
+    return () => {
+      ignore = true;
+    };
   }, []);
 
   const handleCreate = async (e) => {
     e.preventDefault();
-    if (!nombre.trim()) return;
+    const nombreLimpio = nombre.trim();
+
+    if (!nombreLimpio || saving) {
+      return;
+    }
+
+    setSaving(true);
+    setFeedback(null);
 
     try {
       const res = await fetch('/api/categorias', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ nombre: nombre.trim() })
+        body: JSON.stringify({ nombre: nombreLimpio })
       });
       const data = await res.json();
-      if (data.error) {
-        toast(data.error, 'error');
-        return;
+
+      if (!res.ok || data.error) {
+        throw new Error(data.error || 'No se pudo crear la categoria.');
       }
-      toast('Categoría creada correctamente', 'success');
+
+      const message = 'Categoria creada correctamente.';
       setNombre('');
-      loadCategorias();
+      setFeedback({ type: 'success', message });
+      toast(message, 'success');
+      await loadCategorias({ preserveFeedback: true });
     } catch (err) {
-      toast('Error al crear categoría', 'error');
+      const message = err.message || 'Error al crear categoria.';
+      setFeedback({ type: 'error', message });
+      toast(message, 'error');
+    } finally {
+      setSaving(false);
     }
   };
 
-  const handleDelete = async (id) => {
-    if (!confirm('¿Estás seguro de eliminar esta categoría? Los productos asociados se quedarán sin categoría.')) {
-      return;
-    }
+  const handleDelete = async (id, nombreCategoria) => {
+    const confirmed = confirm(
+      `Eliminar la categoria "${nombreCategoria}"? Los productos asociados quedaran sin categoria.`
+    );
+    if (!confirmed) return;
+
+    setFeedback(null);
 
     try {
-      const res = await fetch(`/api/categorias/${id}`, {
-        method: 'DELETE'
-      });
-      if (res.ok) {
-        toast('Categoría eliminada', 'success');
-        loadCategorias();
-      } else {
-        const data = await res.json();
-        toast(data.error || 'Error al eliminar', 'error');
+      const res = await fetch(`/api/categorias/${id}`, { method: 'DELETE' });
+      const data = await res.json();
+
+      if (!res.ok || data.error) {
+        throw new Error(data.error || 'No se pudo eliminar la categoria.');
       }
+
+      const message = 'Categoria eliminada correctamente.';
+      setFeedback({ type: 'success', message });
+      toast(message, 'success');
+      await loadCategorias({ preserveFeedback: true });
     } catch (err) {
-      toast('Error al eliminar', 'error');
+      const message = err.message || 'Error al eliminar categoria.';
+      setFeedback({ type: 'error', message });
+      toast(message, 'error');
     }
   };
 
-  if (loading) return <div className="screen"><p className="loading">Cargando...</p></div>;
+  if (loading) {
+    return (
+      <div className="screen">
+        <p className="loading">Cargando categorias...</p>
+      </div>
+    );
+  }
 
   return (
-    <div className="screen" style={{ width: '100%', maxWidth: '100%', padding: '20px 40px' }}>
-      <div className="screen-header" style={{ marginBottom: '24px' }}>
-        <h2>Categorías de Productos</h2>
-        <p className="screen-sub">Crea y gestiona las categorías del menú de IngenioSnack</p>
+    <div className="screen admin-category-screen">
+      <div className="screen-header">
+        <h2>Categorias de productos</h2>
+        <p className="screen-sub">Crea, revisa y elimina las categorias del menu.</p>
       </div>
 
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: '24px' }}>
-        {/* Formulario */}
-        <div className="add-form" style={{
-          margin: 0,
-          height: 'fit-content',
-          background: '#FFFDFB',
-          border: '1.5px solid #E6D4C3',
-          borderRadius: '4px',
-          padding: '24px',
-          boxShadow: '0 4px 20px rgba(45, 26, 14, 0.03)'
-        }}>
-          <h3 style={{ fontSize: '15px', fontWeight: 800, color: '#4A2E1B', marginBottom: '16px', borderBottom: '1px solid #E6D4C3', paddingBottom: '8px' }}>Nueva Categoría</h3>
+      {feedback && (
+        <div className={`admin-feedback ${feedback.type}`}>
+          {feedback.message}
+        </div>
+      )}
+
+      <div className="admin-category-layout">
+        <section className="glass-panel category-form-panel">
+          <h3>Nueva categoria</h3>
           <form onSubmit={handleCreate}>
-            <div className="form-group" style={{ marginBottom: '16px' }}>
-              <label style={{ color: '#6D4C35', fontWeight: 700, fontSize: '12px', marginBottom: '6px', display: 'block' }}>Nombre de Categoría</label>
+            <div className="form-group">
+              <label>Nombre</label>
               <input
                 type="text"
                 value={nombre}
-                onChange={e => setNombre(e.target.value)}
-                placeholder="Ej: Postres, Ensaladas..."
-                style={{ borderRadius: '4px', border: '1px solid #D2B48C', padding: '10px 12px', fontSize: '13px', background: '#FFF', width: '100%' }}
+                onChange={(e) => setNombre(e.target.value)}
+                placeholder="Ej: Postres, cafes, ensaladas"
                 required
               />
             </div>
-            <button type="submit" className="btn btn-primary" style={{ width: '100%', borderRadius: '4px', padding: '10px 0' }}>
-              <Plus size={16} style={{ marginRight: '6px' }} /> Crear Categoría
+            <button type="submit" className="btn btn-primary btn-full" disabled={saving}>
+              <Plus size={16} />
+              {saving ? 'Creando...' : 'Crear categoria'}
             </button>
           </form>
-        </div>
+        </section>
 
-        {/* Listado */}
-        <div className="rep-sec" style={{
-          margin: 0,
-          background: '#FFF',
-          border: '1px solid #EFE7E0',
-          borderRadius: '4px',
-          padding: '24px'
-        }}>
-          <h3 style={{ fontSize: '15px', fontWeight: 800, color: 'var(--text)', borderBottom: '1px solid #EFE7E0', paddingBottom: '8px', marginBottom: '16px' }}>
-            <FolderOpen size={16} style={{ marginRight: '8px', color: 'var(--primary)', verticalAlign: 'middle' }} />
-            Categorías Disponibles ({categorias.length})
-          </h3>
+        <section className="glass-panel category-list-panel">
+          <div className="panel-title-row">
+            <h3>
+              <FolderOpen size={18} />
+              Categorias disponibles
+            </h3>
+            <span>{categorias.length}</span>
+          </div>
+
           {categorias.length === 0 ? (
-            <div className="empty-state" style={{ padding: '32px 10px', textAlign: 'center' }}>
-              <p style={{ color: 'var(--text-muted)' }}>No hay categorías registradas.</p>
+            <div className="empty-state category-empty">
+              <p>No hay categorias registradas.</p>
             </div>
           ) : (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-              {categorias.map(cat => (
-                <div
-                  key={cat.id}
-                  style={{
-                    display: 'flex',
-                    justifyContent: 'space-between',
-                    alignItems: 'center',
-                    padding: '12px 16px',
-                    background: '#FFFDFB',
-                    border: '1.5px solid #E6D4C3',
-                    borderRadius: '4px',
-                    transition: 'all 0.2s ease'
-                  }}
-                  className="cat-list-item"
-                >
-                  <span style={{ fontWeight: 700, color: 'var(--text)' }}>{cat.nombre}</span>
+            <div className="category-list">
+              {categorias.map((cat) => (
+                <div className="category-list-item" key={cat.id}>
+                  <span>{cat.nombre}</span>
                   <button
-                    onClick={() => handleDelete(cat.id)}
-                    style={{
-                      background: 'rgba(239, 68, 68, 0.1)',
-                      color: 'var(--danger)',
-                      border: 'none',
-                      padding: '6px 8px',
-                      borderRadius: '4px',
-                      cursor: 'pointer',
-                      display: 'flex',
-                      alignItems: 'center',
-                      transition: 'background 0.2s'
-                    }}
-                    onMouseEnter={e => e.currentTarget.style.background = 'rgba(239, 68, 68, 0.2)'}
-                    onMouseLeave={e => e.currentTarget.style.background = 'rgba(239, 68, 68, 0.1)'}
+                    type="button"
+                    className="icon-danger-btn"
+                    onClick={() => handleDelete(cat.id, cat.nombre)}
+                    title="Eliminar categoria"
                   >
-                    <Trash2 size={14} />
+                    <Trash2 size={15} />
                   </button>
                 </div>
               ))}
             </div>
           )}
-        </div>
+        </section>
       </div>
     </div>
   );

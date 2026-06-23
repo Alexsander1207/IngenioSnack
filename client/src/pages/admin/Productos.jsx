@@ -2,6 +2,8 @@ import { useState, useEffect, useRef } from 'react';
 import { Slash, Check, ImageIcon, X, Plus, Minus, Trash2, LayoutGrid, List } from 'lucide-react';
 import { useToast } from '../../components/Toast';
 
+const PRODUCTOS_ADMIN_URL = '/api/productos?admin=true';
+
 export default function Productos() {
   const [productos, setProductos] = useState([]);
   const [categorias, setCategorias] = useState([]);
@@ -31,7 +33,7 @@ export default function Productos() {
   const loadData = async () => {
     try {
       const [prodRes, catRes] = await Promise.all([
-        fetch('/api/productos'),
+        fetch(PRODUCTOS_ADMIN_URL),
         fetch('/api/categorias')
       ]);
       
@@ -88,7 +90,7 @@ export default function Productos() {
       formData.append('nombre', form.nombre);
       formData.append('precio', form.precio);
       formData.append('categoria', form.categoria);
-      formData.append('categoriaId', form.categoriaId);
+      formData.append('categoria_id', form.categoriaId);
       if (form.stock) formData.append('stock', form.stock);
       if (form.imagen) formData.append('imagen', form.imagen);
 
@@ -113,7 +115,7 @@ export default function Productos() {
       setPreview(null);
       
       // Reload products
-      const pRes = await fetch('/api/productos');
+      const pRes = await fetch(PRODUCTOS_ADMIN_URL);
       const prods = await pRes.json();
       setProductos(prods);
     } catch (err) {
@@ -140,7 +142,7 @@ export default function Productos() {
         setRazonModal(null);
         
         // Reload products
-        const pRes = await fetch('/api/productos');
+        const pRes = await fetch(PRODUCTOS_ADMIN_URL);
         const prods = await pRes.json();
         setProductos(prods);
       } else {
@@ -163,7 +165,7 @@ export default function Productos() {
         toast('Producto activado', 'success');
         
         // Reload products
-        const pRes = await fetch('/api/productos');
+        const pRes = await fetch(PRODUCTOS_ADMIN_URL);
         const prods = await pRes.json();
         setProductos(prods);
       }
@@ -184,7 +186,7 @@ export default function Productos() {
       if (res.ok) {
         toast('Producto eliminado correctamente', 'success');
         // Reload products
-        const pRes = await fetch('/api/productos');
+        const pRes = await fetch(PRODUCTOS_ADMIN_URL);
         const prods = await pRes.json();
         setProductos(prods);
       } else {
@@ -207,7 +209,7 @@ export default function Productos() {
       if (res.ok) {
         toast(`Stock actualizado a ${newStock}`, 'success');
         // Reload products
-        const pRes = await fetch('/api/productos');
+        const pRes = await fetch(PRODUCTOS_ADMIN_URL);
         const prods = await pRes.json();
         setProductos(prods);
       } else {
@@ -237,7 +239,7 @@ export default function Productos() {
         setCategorias(cats);
         
         // Reload products just in case category names/ids changed
-        const pRes = await fetch('/api/productos');
+        const pRes = await fetch(PRODUCTOS_ADMIN_URL);
         const prods = await pRes.json();
         setProductos(prods);
 
@@ -304,13 +306,22 @@ export default function Productos() {
 
   if (loading) return <div className="screen"><p className="loading">Cargando...</p></div>;
 
+  const getProductCategoryName = (producto) => {
+    return producto.categoria
+      || categorias.find(cat => cat.id === (producto.categoriaId || producto.categoria_id))?.nombre
+      || 'Sin categoria';
+  };
+
   // Filtrar productos
   const filteredProducts = selectedCat === 'Todos'
     ? productos
-    : productos.filter(p => p.categoria === selectedCat || p.categoriaId === selectedCat);
+    : productos.filter(p => getProductCategoryName(p) === selectedCat || p.categoriaId === selectedCat);
 
   // Lista de categorías para las pestañas de filtrado
-  const categoriesList = ['Todos', ...categorias.map(c => c.nombre)];
+  const categoriesList = ['Todos', ...new Set([
+    ...categorias.map(c => c.nombre),
+    ...productos.map(getProductCategoryName).filter(Boolean)
+  ])];
 
   return (
     <div className="screen" style={{ width: '100%', maxWidth: '100%', padding: '20px 40px' }}>
@@ -642,7 +653,7 @@ export default function Productos() {
 
                   {/* Datos */}
                   <div style={{ padding: '14px', flexGrow: 1, display: 'flex', flexDirection: 'column' }}>
-                    <span style={{ fontSize: '11px', color: '#8A6A55', textTransform: 'uppercase', fontWeight: '800', letterSpacing: '0.5px' }}>{p.categoria}</span>
+                    <span style={{ fontSize: '11px', color: '#8A6A55', textTransform: 'uppercase', fontWeight: '800', letterSpacing: '0.5px' }}>{getProductCategoryName(p)}</span>
                     <h4 style={{ fontSize: '15px', fontWeight: '800', color: 'var(--text)', margin: '4px 0 8px 0', minHeight: '40px' }}>{p.nombre}</h4>
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginTop: 'auto', borderTop: '1px solid #FDF3EA', paddingTop: '8px' }}>
                       <span style={{ fontSize: '11px', color: '#B0A090' }}>Precio</span>
@@ -806,7 +817,7 @@ export default function Productos() {
                         </div>
                       )}
                     </td>
-                    <td style={{ padding: '10px 16px', color: '#8A6A55', fontWeight: '500' }}>{p.categoria}</td>
+                    <td style={{ padding: '10px 16px', color: '#8A6A55', fontWeight: '500' }}>{getProductCategoryName(p)}</td>
                     <td style={{ padding: '10px 16px', fontWeight: '700' }}>S/ {p.precio.toFixed(2)}</td>
                     <td style={{ padding: '10px 16px' }}>
                       <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
