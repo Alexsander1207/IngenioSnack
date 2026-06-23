@@ -16,6 +16,9 @@ router.get('/', async (_req, res) => {
 router.post('/', async (req, res) => {
   try {
     const { nombre } = req.body;
+    if (!nombre || String(nombre).trim() === '') {
+      return res.status(400).json({ error: 'nombre es requerido.' });
+    }
     const cat = await categoriaService.crearCategoria(nombre);
     res.status(201).json(cat);
   } catch (error) {
@@ -26,6 +29,9 @@ router.post('/', async (req, res) => {
 // DELETE /api/categorias/:id
 router.delete('/:id', async (req, res) => {
   try {
+    if (!req.params.id) {
+      return res.status(400).json({ error: 'id es requerido.' });
+    }
     await categoriaService.eliminarCategoria(req.params.id);
     res.json({ ok: true });
   } catch (error) {

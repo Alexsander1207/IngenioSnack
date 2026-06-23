@@ -12,6 +12,22 @@ const { supabase } = require('../config/supabaseClient');
 const Producto = require('../models/Producto');
 
 const TABLA = 'productos';
+const TABLA_CATEGORIAS = 'categorias';
+
+function requireSupabase() {
+  if (!supabase) {
+    throw new Error('Supabase no esta configurado.');
+  }
+  return supabase;
+}
+
+function normalizarCategoriaId(datos = {}) {
+  const valor = datos.categoria_id ?? datos.categoriaId;
+  if (valor === undefined || valor === null || String(valor).trim() === '') {
+    return null;
+  }
+  return String(valor).trim();
+}
 
 function serializarProducto(p) {
   if (!p) return undefined;
@@ -25,8 +41,10 @@ function serializarProducto(p) {
     disponible: p.disponible,
     activo: p.activo,
     motivoNoDisponible: p.motivo_no_disponible,
+    razonAgotamiento: p.motivo_no_disponible,
     stock: p.stock ?? 0,
     categoriaId: p.categoria_id,
+    categoria_id: p.categoria_id,
     creadoEn: p.creado_en
   };
 }
@@ -52,7 +70,7 @@ function validarProducto(datos = {}) {
 
 /**
  * Registra un nuevo producto. El producto nace activo.
- * @param {Object} datos { nombre, precio, descripcion?, categoria?, imagen_url?, disponible?, stock? }
+ * @param {Object} datos { nombre, precio, descripcion?, categoria?, categoria_id?, imagen_url?, disponible?, stock? }
  * @returns {Promise<Object>} El producto creado.
  */
 async function crearProducto(datos) {
@@ -71,14 +89,76 @@ async function crearProducto(datos) {
     activo: true,
     motivo_no_disponible: datos.motivo_no_disponible ?? null,
     stock: datos.stock ?? 15,
-    categoria_id: datos.categoriaId || datos.categoria_id || null,
+    categoria_id: normalizarCategoriaId(datos),
   };
 
-  const { data, error } = await supabase.from(TABLA).insert([nuevo]).select().single();
+  const { data, error } = await requireSupabase().from(TABLA).insert([nuevo]).select().single();
   if (error) {
     throw new Error(error.message);
   }
   return serializarProducto(data);
+}
+
+function productosQuery({ soloDisponibles = false } = {}) {
+  let query = requireSupabase()
+    .from(TABLA)
+    .select('*')
+    .eq('activo', true);
+
+  if (soloDisponibles) {
+    query = query.eq('disponible', true);
+  }
+
+  return query;
+}
+
+async function obtenerNombreCategoria(categoriaId) {
+  if (!categoriaId) return null;
+
+  const { data, error } = await requireSupabase()
+    .from(TABLA_CATEGORIAS)
+    .select('nombre')
+    .eq('id', categoriaId)
+    .maybeSingle();
+
+  if (error) {
+    throw new Error(error.message);
+  }
+  return data?.nombre ?? null;
+}
+
+function combinarProductos(...listas) {
+  const porId = new Map();
+  listas.flat().forEach((producto) => {
+    if (producto?.id) porId.set(producto.id, producto);
+  });
+  return [...porId.values()];
+}
+
+async function listarPorCategoriaCompatible(categoriaId, { soloDisponibles = false, orden = 'nombre' } = {}) {
+  const { data: porId, error: errorPorId } = await productosQuery({ soloDisponibles })
+    .eq('categoria_id', categoriaId)
+    .order(orden, { ascending: orden !== 'creado_en' });
+
+  if (errorPorId) {
+    throw new Error(errorPorId.message);
+  }
+
+  const nombreCategoria = await obtenerNombreCategoria(categoriaId);
+  if (!nombreCategoria) {
+    return (porId || []).map(serializarProducto);
+  }
+
+  const { data: antiguos, error: errorAntiguos } = await productosQuery({ soloDisponibles })
+    .eq('categoria', nombreCategoria)
+    .is('categoria_id', null)
+    .order(orden, { ascending: orden !== 'creado_en' });
+
+  if (errorAntiguos) {
+    throw new Error(errorAntiguos.message);
+  }
+
+  return combinarProductos(porId || [], antiguos || []).map(serializarProducto);
 }
 
 /**
@@ -87,20 +167,18 @@ async function crearProducto(datos) {
  * @returns {Promise<Object[]>}
  */
 async function listarProductos(categoriaId = null) {
-  let query = supabase
-    .from(TABLA)
-    .select('*')
-    .eq('activo', true);
-
   if (categoriaId) {
-    query = query.eq('categoria_id', categoriaId);
+    return listarPorCategoriaCompatible(categoriaId, {
+      soloDisponibles: false,
+      orden: 'creado_en'
+    });
   }
 
-  const { data, error } = await query.order('creado_en', { ascending: false });
+  const { data, error } = await productosQuery().order('creado_en', { ascending: false });
   if (error) {
     throw new Error(error.message);
   }
-  return data.map(serializarProducto);
+  return (data || []).map(serializarProducto);
 }
 
 /**
@@ -109,21 +187,18 @@ async function listarProductos(categoriaId = null) {
  * @returns {Promise<Object[]>}
  */
 async function listarProductosDisponibles(categoriaId = null) {
-  let query = supabase
-    .from(TABLA)
-    .select('*')
-    .eq('activo', true)
-    .eq('disponible', true);
-
   if (categoriaId) {
-    query = query.eq('categoria_id', categoriaId);
+    return listarPorCategoriaCompatible(categoriaId, {
+      soloDisponibles: true,
+      orden: 'nombre'
+    });
   }
 
-  const { data, error } = await query.order('nombre', { ascending: true });
+  const { data, error } = await productosQuery({ soloDisponibles: true }).order('nombre', { ascending: true });
   if (error) {
     throw new Error(error.message);
   }
-  return data.map(serializarProducto);
+  return (data || []).map(serializarProducto);
 }
 
 /**
@@ -159,8 +234,12 @@ async function actualizarProducto(id, cambios = {}) {
     updateData.motivo_no_disponible = cambios.motivoNoDisponible;
     delete updateData.motivoNoDisponible;
   }
+  if (cambios.categoriaId !== undefined) {
+    updateData.categoria_id = cambios.categoriaId || null;
+    delete updateData.categoriaId;
+  }
 
-  const { data, error } = await supabase.from(TABLA).update(updateData).eq('id', id).select().single();
+  const { data, error } = await requireSupabase().from(TABLA).update(updateData).eq('id', id).select().single();
   if (error) {
     throw new Error(error.message);
   }
@@ -198,7 +277,7 @@ async function cambiarDisponibilidadProducto(id, disponible, motivo = null) {
     disponible,
     motivo_no_disponible: disponible ? null : motivo,
   };
-  const { data, error } = await supabase.from(TABLA).update(cambios).eq('id', id).select().single();
+  const { data, error } = await requireSupabase().from(TABLA).update(cambios).eq('id', id).select().single();
   if (error) {
     throw new Error(error.message);
   }
@@ -211,7 +290,7 @@ async function cambiarDisponibilidadProducto(id, disponible, motivo = null) {
  * @returns {Promise<Object>} El producto desactivado.
  */
 async function desactivarProducto(id) {
-  const { data, error } = await supabase
+  const { data, error } = await requireSupabase()
     .from(TABLA)
     .update({ activo: false })
     .eq('id', id)
@@ -229,7 +308,7 @@ async function desactivarProducto(id) {
  * @returns {Promise<Object|undefined>}
  */
 async function obtenerProducto(id) {
-  const { data, error } = await supabase.from(TABLA).select('*').eq('id', id).maybeSingle();
+  const { data, error } = await requireSupabase().from(TABLA).select('*').eq('id', id).maybeSingle();
   if (error) throw new Error(error.message);
   return serializarProducto(data);
 }
