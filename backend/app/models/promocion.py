@@ -3,7 +3,7 @@ import uuid
 from datetime import datetime
 from decimal import Decimal
 
-from sqlalchemy import Boolean, DateTime, Enum, Integer, Numeric, String, Text, func
+from sqlalchemy import Boolean, DateTime, Integer, Numeric, String, Text, func
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.core.database import Base
@@ -22,8 +22,10 @@ class Promocion(Base):
     id: Mapped[uuid.UUID] = mapped_column(primary_key=True, default=uuid.uuid4)
     nombre: Mapped[str] = mapped_column(String, nullable=False)
     descripcion: Mapped[str | None] = mapped_column(Text, nullable=True)
-    tipo: Mapped[PromocionTipo] = mapped_column(Enum(PromocionTipo), nullable=False)
-    valor: Mapped[Decimal] = mapped_column(Numeric(10, 2), nullable=False)
+    # "tipo" maps to VARCHAR column in Supabase (not a PG enum type)
+    tipo: Mapped[PromocionTipo] = mapped_column(String(50), nullable=False, default=PromocionTipo.COMBO.value)
+    # "valor" maps to "precio" column in Supabase (historical column name)
+    valor: Mapped[Decimal] = mapped_column("precio", Numeric(10, 2), nullable=False)
     fecha_inicio: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
     fecha_fin: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
     imagen_url: Mapped[str | None] = mapped_column(Text, nullable=True)
