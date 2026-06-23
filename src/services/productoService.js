@@ -9,8 +9,27 @@
  *  - El estudiante solo ve productos disponibles y activos.
  */
 const { supabase } = require('../config/supabaseClient');
+const Producto = require('../models/Producto');
 
 const TABLA = 'productos';
+
+function serializarProducto(p) {
+  if (!p) return undefined;
+  return {
+    id: p.id,
+    nombre: p.nombre,
+    descripcion: p.descripcion,
+    precio: Number(p.precio),
+    categoria: p.categoria,
+    imagenUrl: p.imagen_url,
+    disponible: p.disponible,
+    activo: p.activo,
+    motivoNoDisponible: p.motivo_no_disponible,
+    stock: p.stock ?? 0,
+    categoriaId: p.categoria_id,
+    creadoEn: p.creado_en
+  };
+}
 
 /**
  * Valida los datos minimos de un producto.
@@ -33,7 +52,7 @@ function validarProducto(datos = {}) {
 
 /**
  * Registra un nuevo producto. El producto nace activo.
- * @param {Object} datos { nombre, precio, descripcion?, categoria?, imagen_url?, disponible? }
+ * @param {Object} datos { nombre, precio, descripcion?, categoria?, imagen_url?, disponible?, stock? }
  * @returns {Promise<Object>} El producto creado.
  */
 async function crearProducto(datos) {
@@ -51,46 +70,60 @@ async function crearProducto(datos) {
     disponible: datos.disponible ?? true,
     activo: true,
     motivo_no_disponible: datos.motivo_no_disponible ?? null,
+    stock: datos.stock ?? 15,
+    categoria_id: datos.categoriaId || datos.categoria_id || null,
   };
 
   const { data, error } = await supabase.from(TABLA).insert([nuevo]).select().single();
   if (error) {
     throw new Error(error.message);
   }
-  return data;
+  return serializarProducto(data);
 }
 
 /**
  * Lista todos los productos activos (vista del dueño).
+ * @param {string} [categoriaId]
  * @returns {Promise<Object[]>}
  */
-async function listarProductos() {
-  const { data, error } = await supabase
+async function listarProductos(categoriaId = null) {
+  let query = supabase
     .from(TABLA)
     .select('*')
-    .eq('activo', true)
-    .order('creado_en', { ascending: false });
+    .eq('activo', true);
+
+  if (categoriaId) {
+    query = query.eq('categoria_id', categoriaId);
+  }
+
+  const { data, error } = await query.order('creado_en', { ascending: false });
   if (error) {
     throw new Error(error.message);
   }
-  return data;
+  return data.map(serializarProducto);
 }
 
 /**
  * Lista los productos visibles para el estudiante: activos y disponibles.
+ * @param {string} [categoriaId]
  * @returns {Promise<Object[]>}
  */
-async function listarProductosDisponibles() {
-  const { data, error } = await supabase
+async function listarProductosDisponibles(categoriaId = null) {
+  let query = supabase
     .from(TABLA)
     .select('*')
     .eq('activo', true)
-    .eq('disponible', true)
-    .order('nombre', { ascending: true });
+    .eq('disponible', true);
+
+  if (categoriaId) {
+    query = query.eq('categoria_id', categoriaId);
+  }
+
+  const { data, error } = await query.order('nombre', { ascending: true });
   if (error) {
     throw new Error(error.message);
   }
-  return data;
+  return data.map(serializarProducto);
 }
 
 /**
@@ -107,11 +140,50 @@ async function actualizarProducto(id, cambios = {}) {
     throw new Error('El precio debe ser un numero mayor a cero.');
   }
 
-  const { data, error } = await supabase.from(TABLA).update(cambios).eq('id', id).select().single();
+  let stockDiff = 0;
+  let viejoProducto = null;
+  if (cambios.stock !== undefined) {
+    viejoProducto = await obtenerProducto(id);
+    if (viejoProducto) {
+      stockDiff = cambios.stock - viejoProducto.stock;
+    }
+  }
+
+  // Mapear campos si vienen en camelCase a snake_case para la BD
+  const updateData = { ...cambios };
+  if (cambios.imagenUrl !== undefined) {
+    updateData.imagen_url = cambios.imagenUrl;
+    delete updateData.imagenUrl;
+  }
+  if (cambios.motivoNoDisponible !== undefined) {
+    updateData.motivo_no_disponible = cambios.motivoNoDisponible;
+    delete updateData.motivoNoDisponible;
+  }
+
+  const { data, error } = await supabase.from(TABLA).update(updateData).eq('id', id).select().single();
   if (error) {
     throw new Error(error.message);
   }
-  return data;
+
+  const actualizado = serializarProducto(data);
+
+  if (stockDiff !== 0 && viejoProducto) {
+    try {
+      const stockService = require('./stockService');
+      await stockService.registrarMovimiento({
+        productoId: id,
+        productoNombre: viejoProducto.nombre,
+        categoria: viejoProducto.categoria,
+        tipo: stockDiff > 0 ? 'INGRESO' : 'SALIDA',
+        cantidad: Math.abs(stockDiff),
+        motivo: stockDiff > 0 ? 'REPOSICION' : 'AJUSTE'
+      });
+    } catch (err) {
+      console.error("Error al registrar movimiento de stock:", err.message);
+    }
+  }
+
+  return actualizado;
 }
 
 /**
@@ -130,7 +202,7 @@ async function cambiarDisponibilidadProducto(id, disponible, motivo = null) {
   if (error) {
     throw new Error(error.message);
   }
-  return data;
+  return serializarProducto(data);
 }
 
 /**
@@ -148,7 +220,7 @@ async function desactivarProducto(id) {
   if (error) {
     throw new Error(error.message);
   }
-  return data;
+  return serializarProducto(data);
 }
 
 /**
@@ -159,7 +231,7 @@ async function desactivarProducto(id) {
 async function obtenerProducto(id) {
   const { data, error } = await supabase.from(TABLA).select('*').eq('id', id).maybeSingle();
   if (error) throw new Error(error.message);
-  return data || undefined;
+  return serializarProducto(data);
 }
 
 module.exports = {

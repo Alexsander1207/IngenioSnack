@@ -1,12 +1,14 @@
 import { useState } from 'react';
 import { Routes, Route, Navigate, useNavigate, useLocation } from 'react-router-dom';
-import { LogOut, LayoutDashboard, Package, Archive, ClipboardList, UserCircle, Menu as MenuIcon, Gift } from 'lucide-react';
+import { LogOut, LayoutDashboard, Package, Archive, ClipboardList, UserCircle, Menu as MenuIcon, Gift, Star, RefreshCw, BarChart3 } from 'lucide-react';
 import { useAppContext } from '../context/AppContext';
 import Panel from './admin/Panel';
 import Productos from './admin/Productos';
-import Inventario from './admin/Inventario';
 import Pedidos from './admin/Pedidos';
 import Promociones from './admin/Promociones';
+import Fidelidad from './admin/Fidelidad';
+import Movimientos from './admin/Movimientos';
+import Reporte from './admin/Reporte';
 
 export default function AdminPortal() {
   const { user, logout } = useAppContext();
@@ -21,10 +23,12 @@ export default function AdminPortal() {
 
   const navItems = [
     { id: 'panel', path: '/admin/panel', icon: LayoutDashboard, label: 'Panel Principal', shortLabel: 'Panel' },
-    { id: 'productos', path: '/admin/productos', icon: Package, label: 'Productos', shortLabel: 'Productos' },
-    { id: 'inventario', path: '/admin/inventario', icon: Archive, label: 'Inventario Rápido', shortLabel: 'Inventario' },
+    { id: 'productos', path: '/admin/productos', icon: Package, label: 'Productos (Menú)', shortLabel: 'Menú' },
+    { id: 'movimientos', path: '/admin/movimientos', icon: RefreshCw, label: 'Kardex / Movimientos', shortLabel: 'Kardex' },
     { id: 'pedidos', path: '/admin/pedidos', icon: ClipboardList, label: 'Gestión Pedidos', shortLabel: 'Pedidos' },
     { id: 'promociones', path: '/admin/promociones', icon: Gift, label: 'Promociones', shortLabel: 'Combos' },
+    { id: 'fidelidad', path: '/admin/fidelidad', icon: Star, label: 'Fidelidad y Premios', shortLabel: 'Premios' },
+    { id: 'reporte', path: '/admin/reporte', icon: BarChart3, label: 'Informe Económico', shortLabel: 'Reporte' },
   ];
 
   return (
@@ -58,7 +62,7 @@ export default function AdminPortal() {
           </button>
         </div>
       </nav>
-
+ 
       <div className="portal-main">
         <header className="mobile-header">
           <button className="hamburger" onClick={() => setSidebarOpen(true)}>
@@ -69,14 +73,15 @@ export default function AdminPortal() {
             <LogOut size={20} />
           </button>
         </header>
-
+ 
         <Routes>
           <Route path="panel" element={<Panel />} />
           <Route path="productos" element={<Productos />} />
-          <Route path="inventario" element={<Inventario />} />
+          <Route path="movimientos" element={<Movimientos />} />
           <Route path="pedidos" element={<Pedidos />} />
           <Route path="promociones" element={<Promociones />} />
-          <Route path="reporte" element={<Navigate to="/admin/panel" replace />} />
+          <Route path="fidelidad" element={<Fidelidad />} />
+          <Route path="reporte" element={<Reporte />} />
           <Route path="*" element={<Navigate to="panel" />} />
         </Routes>
       </div>

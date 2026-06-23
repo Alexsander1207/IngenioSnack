@@ -11,6 +11,11 @@ const express = require('express');
 const router = express.Router();
 const promocionService = require('../services/promocionService');
 
+const path = require('path');
+const fs = require('fs');
+const upload = require('../config/multer');
+const { supabase } = require('../config/supabaseClient');
+
 // GET /api/promociones — Listar promociones activas con sus productos
 router.get('/', async (_req, res) => {
   try {
@@ -22,14 +27,72 @@ router.get('/', async (_req, res) => {
 });
 
 // POST /api/promociones — Crear un nuevo combo/promoción
-router.post('/', async (req, res) => {
+router.post('/', upload.single('imagen'), async (req, res) => {
   try {
-    const { nombre, descripcion, precio, productos } = req.body;
+    let { nombre, descripcion, precio, productos } = req.body;
 
-    if (!nombre || precio == null || !Array.isArray(productos) || productos.length === 0) {
+    if (!nombre || precio == null || !productos) {
       return res.status(400).json({
-        error: 'nombre, precio y productos[] son requeridos.',
+        error: 'nombre, precio y productos son requeridos.',
       });
+    }
+
+    // Si viene como string JSON (por FormData), lo parseamos
+    if (typeof productos === 'string') {
+      try {
+        productos = JSON.parse(productos);
+      } catch (e) {
+        return res.status(400).json({ error: 'productos debe ser un JSON válido.' });
+      }
+    }
+
+    if (!Array.isArray(productos) || productos.length === 0) {
+      return res.status(400).json({
+        error: 'productos debe ser una lista no vacía.',
+      });
+    }
+
+    let imagenUrl = null;
+    if (req.file) {
+      const fileExt = path.extname(req.file.originalname) || '.jpg';
+      const fileName = `${Date.now()}${fileExt}`;
+      
+      try {
+        let { data, error: uploadError } = await supabase.storage
+          .from('productos')
+          .upload(fileName, req.file.buffer, {
+            contentType: req.file.mimetype,
+            upsert: true
+          });
+          
+        if (uploadError && uploadError.message && uploadError.message.includes('not found')) {
+          await supabase.storage.createBucket('productos', { public: true });
+          const retry = await supabase.storage
+            .from('productos')
+            .upload(fileName, req.file.buffer, {
+              contentType: req.file.mimetype,
+              upsert: true
+            });
+          data = retry.data;
+          uploadError = retry.error;
+        }
+
+        if (uploadError) throw uploadError;
+
+        const { data: urlData } = supabase.storage
+          .from('productos')
+          .getPublicUrl(fileName);
+        imagenUrl = urlData.publicUrl;
+      } catch (storageError) {
+        console.error("Fallo la subida a Supabase, guardando local:", storageError.message);
+        const localDir = path.join(process.cwd(), 'uploads');
+        if (!fs.existsSync(localDir)) {
+          fs.mkdirSync(localDir, { recursive: true });
+        }
+        const localFilePath = path.join(localDir, fileName);
+        fs.writeFileSync(localFilePath, req.file.buffer);
+        imagenUrl = '/uploads/' + fileName;
+      }
     }
 
     const promo = await promocionService.crearPromocion({
@@ -37,6 +100,7 @@ router.post('/', async (req, res) => {
       descripcion: descripcion || null,
       precio: parseFloat(precio),
       productos,
+      imagen_url: imagenUrl
     });
 
     res.status(201).json(promo);

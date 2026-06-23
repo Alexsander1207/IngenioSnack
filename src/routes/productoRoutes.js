@@ -1,12 +1,25 @@
 const express = require('express');
 const router = express.Router();
+const path = require('path');
+const fs = require('fs');
 const productoService = require('../services/productoService');
+const stockService = require('../services/stockService');
 const upload = require('../config/multer');
+const { supabase } = require('../config/supabaseClient');
 
-router.get('/', async (_req, res) => {
+router.get('/', async (req, res) => {
   try {
-    const productos = await productoService.listarProductos();
+    const productos = await productoService.listarProductos(req.query.categoriaId);
     res.json(productos);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+router.get('/movimientos', async (req, res) => {
+  try {
+    const list = await stockService.listarMovimientos();
+    res.json(list);
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
@@ -14,14 +27,63 @@ router.get('/', async (_req, res) => {
 
 router.post('/', upload.single('imagen'), async (req, res) => {
   try {
-    const { nombre, precio, categoria, stock } = req.body;
+    const { nombre, precio, categoria, stock, categoriaId } = req.body;
     if (!nombre || precio == null || !categoria) {
       return res.status(400).json({ error: 'nombre, precio y categoria son requeridos.' });
     }
       
     let imagenUrl = null;
     if (req.file) {
-      imagenUrl = '/uploads/' + req.file.filename;
+      const fileExt = path.extname(req.file.originalname) || '.jpg';
+      const fileName = `${Date.now()}${fileExt}`;
+      
+      try {
+        // Intentar subir a Supabase Storage
+        let { data, error: uploadError } = await supabase.storage
+          .from('productos')
+          .upload(fileName, req.file.buffer, {
+            contentType: req.file.mimetype,
+            upsert: true
+          });
+          
+        // Si el bucket no existe, intentamos crearlo y reintentar
+        if (uploadError && uploadError.message && uploadError.message.includes('not found')) {
+          console.log("Bucket 'productos' no encontrado, intentando crearlo...");
+          await supabase.storage.createBucket('productos', { public: true });
+          const retry = await supabase.storage
+            .from('productos')
+            .upload(fileName, req.file.buffer, {
+              contentType: req.file.mimetype,
+              upsert: true
+            });
+          data = retry.data;
+          uploadError = retry.error;
+        }
+
+        if (uploadError) {
+          throw uploadError;
+        }
+
+        // Obtener URL pública
+        const { data: urlData } = supabase.storage
+          .from('productos')
+          .getPublicUrl(fileName);
+        imagenUrl = urlData.publicUrl;
+        console.log("Imagen subida exitosamente a Supabase Storage:", imagenUrl);
+      } catch (storageError) {
+        console.error("Fallo la subida a Supabase Storage, guardando en local:", storageError.message);
+        
+        // Fallback local en disco
+        const localDir = path.join(process.cwd(), 'uploads');
+        if (!fs.existsSync(localDir)) {
+          fs.mkdirSync(localDir, { recursive: true });
+        }
+        
+        const localFilePath = path.join(localDir, fileName);
+        fs.writeFileSync(localFilePath, req.file.buffer);
+        imagenUrl = '/uploads/' + fileName;
+        console.log("Imagen guardada localmente como fallback:", imagenUrl);
+      }
     }
     
     const parsedStock = stock != null ? parseInt(stock, 10) : 15;
@@ -31,7 +93,8 @@ router.post('/', upload.single('imagen'), async (req, res) => {
       precio: parseFloat(precio),
       categoria,
       imagen_url: imagenUrl,
-      stock: isNaN(parsedStock) ? 15 : parsedStock
+      stock: isNaN(parsedStock) ? 15 : parsedStock,
+      categoriaId: categoriaId || null
     });
     res.status(201).json(p);
   } catch (error) {
@@ -81,6 +144,18 @@ router.put('/:id', async (req, res) => {
 
     const actualizado = await productoService.actualizarProducto(req.params.id, cambios);
     res.json(actualizado);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+router.delete('/:id', async (req, res) => {
+  try {
+    const producto = await productoService.obtenerProducto(req.params.id);
+    if (!producto) return res.status(404).json({ error: 'Producto no encontrado.' });
+    
+    await productoService.desactivarProducto(req.params.id);
+    res.json({ success: true, message: 'Producto eliminado correctamente.' });
   } catch (error) {
     res.status(500).json({ error: error.message });
   }

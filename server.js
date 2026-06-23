@@ -23,12 +23,14 @@ const pedidoRoutes = require('./src/routes/pedidoRoutes');
 const estudianteRoutes = require('./src/routes/estudianteRoutes');
 const reporteRoutes = require('./src/routes/reporteRoutes');
 const promocionRoutes = require('./src/routes/promocionRoutes');
+const categoriaRoutes = require('./src/routes/categoriaRoutes');
+const fidelidadRoutes = require('./src/routes/fidelidadRoutes');
 
 const app = express();
 app.use(express.json());
 
 // ─── DATOS INICIALES (SEED) ──────────────────────────────────────
-function seedData() {
+async function seedData() {
   // Productos del menu (9 items, 3 categorias)
   menuService.registrarProducto({ id: 'S1', nombre: 'Sandwich de pollo',  precio: 5.00, categoria: 'Sandwich' });
   menuService.registrarProducto({ id: 'S2', nombre: 'Triple',              precio: 6.00, categoria: 'Sandwich' });
@@ -48,20 +50,28 @@ function seedData() {
 
   // Pedidos de ejemplo en distintos estados
   try {
-    const p1 = pedidoService.crearPedido('E1', [{ productoId: 'S1', cantidad: 2 }, { productoId: 'B1', cantidad: 1 }]);
-    pedidoService.confirmarPedido(p1.id);
-    pedidoService.cambiarEstado(p1.id, ESTADOS.EN_PREPARACION);
+    const p1 = await pedidoService.crearPedido('E1', [{ productoId: 'S1', cantidad: 2 }, { productoId: 'B1', cantidad: 1 }]);
+    await pedidoService.confirmarPedido(p1.id);
+    await pedidoService.cambiarEstado(p1.id, ESTADOS.EN_PREPARACION);
 
-    const p2 = pedidoService.crearPedido('E2', [{ productoId: 'S2', cantidad: 1 }, { productoId: 'B2', cantidad: 1 }]);
-    pedidoService.confirmarPedido(p2.id);
+    const p2 = await pedidoService.crearPedido('E2', [{ productoId: 'S2', cantidad: 1 }, { productoId: 'B2', cantidad: 1 }]);
+    await pedidoService.confirmarPedido(p2.id);
 
-    pedidoService.crearPedido('E1', [{ productoId: 'K1', cantidad: 2 }]);
+    await pedidoService.crearPedido('E1', [{ productoId: 'K1', cantidad: 2 }]);
   } catch (err) {
     console.error('Seed error:', err.message);
   }
 }
 
-seedData();
+async function startServer() {
+  await seedData();
+
+  app.listen(PORT, () => {
+    console.log(`\n  ☕  IngenioSnack corriendo en http://localhost:${PORT}`);
+    console.log(`  🎓  Estudiante de prueba — codigo: 2021100123`);
+    console.log(`  🏪  Vendedor — PIN: 1234\n`);
+  });
+}
 
 // ─── MONTAR RUTAS API ────────────────────────────────────────────
 app.use('/api/auth', authRoutes);
@@ -70,6 +80,18 @@ app.use('/api/pedidos', pedidoRoutes);
 app.use('/api/estudiante', estudianteRoutes);
 app.use('/api/reporte', reporteRoutes);
 app.use('/api/promociones', promocionRoutes);
+app.use('/api/categorias', categoriaRoutes);
+app.use('/api/fidelidad', fidelidadRoutes);
+
+app.get('/api/config/supabase', (req, res) => {
+  res.json({
+    supabaseUrl: process.env.SUPABASE_URL,
+    supabaseKey: process.env.SUPABASE_ANON_KEY || process.env.SUPABASE_KEY
+  });
+});
+
+// Servir imágenes subidas
+app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
 // Servir SPA después de todas las rutas API
 app.use(express.static(path.join(__dirname, 'public')));
@@ -84,8 +106,8 @@ app.get('*splat', (req, res) => {
 
 // ─── ARRANCAR ───────────────────────────────────────────────────
 const PORT = 3000;
-app.listen(PORT, () => {
-  console.log(`\n  ☕  IngenioSnack corriendo en http://localhost:${PORT}`);
-  console.log(`  🎓  Estudiante de prueba — codigo: 2021100123`);
-  console.log(`  🏪  Vendedor — PIN: 1234\n`);
+
+startServer().catch((err) => {
+  console.error('Startup error:', err.message);
+  process.exit(1);
 });

@@ -187,6 +187,21 @@ async function crearPedido(estudianteId, lineas) {
       .eq('id', prodId);
 
     if (errUp) throw new Error(errUp.message);
+
+    // Registrar movimiento de stock
+    try {
+      const stockService = require('./stockService');
+      await stockService.registrarMovimiento({
+        productoId: prodId,
+        productoNombre: producto.nombre,
+        categoria: producto.categoria,
+        tipo: 'SALIDA',
+        cantidad: cantidadTotal,
+        motivo: 'VENTA'
+      });
+    } catch (err) {
+      console.error("Fallo al registrar movimiento en crearPedido:", err.message);
+    }
   }
 
   const pedidoId = await generarId();
@@ -343,6 +358,21 @@ async function cambiarEstado(id, nuevoEstado) {
             cambios.motivo_no_disponible = null;
           }
           await supabase.from('productos').update(cambios).eq('id', item.producto.id);
+
+          // Registrar movimiento de stock
+          try {
+            const stockService = require('./stockService');
+            await stockService.registrarMovimiento({
+              productoId: item.producto.id,
+              productoNombre: item.producto.nombre,
+              categoria: item.producto.categoria,
+              tipo: 'INGRESO',
+              cantidad: item.cantidad,
+              motivo: 'CANCELACION'
+            });
+          } catch (err) {
+            console.error("Fallo al registrar movimiento en cambiarEstado:", err.message);
+          }
         }
       }
     }

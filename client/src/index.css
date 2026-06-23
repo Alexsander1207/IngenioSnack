@@ -1399,7 +1399,7 @@ button, input, select { font-family: inherit; }
 
 .store-card-img-wrap {
   width: 100%;
-  aspect-ratio: 16/10;
+  aspect-ratio: 1/1;
   position: relative;
   overflow: hidden;
   display: flex;

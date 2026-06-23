@@ -94,3 +94,6 @@ create table if not exists progreso_fidelidad (
   premios_disponibles integer not null default 0,
   unique(estudiante_id, producto_criterio_id)
 );
+
+-- Habilitar replicación en tiempo real para la tabla de pedidos
+alter publication supabase_realtime add table public.pedidos;

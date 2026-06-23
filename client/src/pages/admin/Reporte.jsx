@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { TrendingUp, DollarSign, ShoppingBag, Users, Package, BarChart3, AlertCircle, Calendar, PieChart } from 'lucide-react';
+import { TrendingUp, DollarSign, ShoppingBag, Users, Package, BarChart3, AlertCircle, Calendar, PieChart, Percent } from 'lucide-react';
 import { useToast } from '../../components/Toast';
 import { LineChart, DonutChart, BarChart } from '../../components/Charts';
 
@@ -19,22 +19,46 @@ export default function Reporte() {
         setPedidos(pedidosData);
         setLoading(false);
       })
-      .catch(() => { toast('Error al cargar reporte', 'error'); setLoading(false); });
+      .catch(() => {
+        toast('Error al cargar reporte económico', 'error');
+        setLoading(false);
+      });
   }, []);
 
-  if (loading) return <div className="screen"><p className="loading">Cargando reporte...</p></div>;
+  if (loading) {
+    return (
+      <div className="screen">
+        <p className="loading">Cargando reporte económico...</p>
+      </div>
+    );
+  }
 
   const { estadisticas: s, masVendidos } = data;
 
-  // Calcular caja del día (pedidos recogidos hoy)
+  // Cálculos de KPIs Recomendados
+  const totalPedidos = pedidos.length;
+  const pedidosRecogidos = pedidos.filter(p => p.estado === 'RECOGIDO');
+  const pedidosCancelados = pedidos.filter(p => p.estado === 'CANCELADO');
+
+  // Ingresos totales basados en recogidos
+  const ingresosRecogidos = pedidosRecogidos.reduce((acc, p) => acc + p.total, 0);
+
+  // KPI 1: Ticket Medio (Ingresos Totales / Pedidos Recogidos)
+  const ticketMedio = pedidosRecogidos.length > 0 ? ingresosRecogidos / pedidosRecogidos.length : 0;
+
+  // KPI 2: Tasa de Cancelación (Pedidos Cancelados / Pedidos Totales)
+  const tasaCancelacion = totalPedidos > 0 ? (pedidosCancelados.length / totalPedidos) * 100 : 0;
+
+  // Caja del día (Pedidos entregados/recogidos hoy)
   const hoy = new Date().toDateString();
   const entregadosHoy = pedidos.filter(p =>
     p.estado === 'RECOGIDO' && new Date(p.fecha).toDateString() === hoy
   );
   const cajaHoy = entregadosHoy.reduce((acc, p) => acc + p.total, 0);
+
   const pendientesHoy = pedidos.filter(p =>
-    (p.estado === 'PENDIENTE' || p.estado === 'CONFIRMADO' || p.estado === 'EN_PREPARACION' || p.estado === 'LISTO')
-    && new Date(p.fecha).toDateString() === hoy
+    ['PENDIENTE', 'CONFIRMADO', 'EN_PREPARACION', 'LISTO'].includes(p.estado) &&
+    new Date(p.fecha).toDateString() === hoy
   );
 
   const getLast7DaysSales = (pedidosList) => {
@@ -70,9 +94,10 @@ export default function Reporte() {
     });
 
     const colors = {
-      'Sandwich': 'var(--secondary)',
-      'Bebida': 'var(--primary-light)',
-      'Snack': 'var(--orange)',
+      'Sandwiches': 'var(--primary)',
+      'Bebidas': 'var(--secondary)',
+      'Snacks': 'var(--orange)',
+      'Combos': 'var(--success)',
       'Otros': 'var(--neutral)'
     };
 
@@ -106,101 +131,109 @@ export default function Reporte() {
   };
 
   const statCards = [
-    { label: 'Ingresos totales', value: `S/ ${s.ingresosTotales.toFixed(2)}`, icon: DollarSign, color: 'c-success' },
-    { label: 'Pedidos totales', value: s.totalPedidos, icon: ShoppingBag, color: 'c-primary' },
-    { label: 'Recogidos', value: s.pedidosEntregados, icon: TrendingUp, color: 'c-info' },
-    { label: 'Activos ahora', value: s.pedidosActivos, icon: AlertCircle, color: 'c-warning' },
-    { label: 'Estudiantes', value: s.estudiantesRegistrados, icon: Users, color: 'c-orange' },
-    { label: 'Productos disponibles', value: `${s.productosDisponibles}/${s.totalProductos}`, icon: Package, color: 'c-primary' },
+    { label: 'Ingresos Totales (Recogidos)', value: `S/ ${ingresosRecogidos.toFixed(2)}`, icon: DollarSign, color: 'c-success' },
+    { label: 'Ticket Medio (KPI)', value: `S/ ${ticketMedio.toFixed(2)}`, icon: TrendingUp, color: 'c-primary' },
+    { label: 'Tasa Cancelación (KPI)', value: `${tasaCancelacion.toFixed(1)}%`, icon: Percent, color: 'c-warning' },
+    { label: 'Pedidos Totales', value: totalPedidos, icon: ShoppingBag, color: 'c-info' },
+    { label: 'Estudiantes Activos', value: s.estudiantesRegistrados, icon: Users, color: 'c-orange' },
+    { label: 'Productos en Menú', value: s.totalProductos, icon: Package, color: 'c-neutral' },
   ];
 
   return (
     <div className="screen">
       <div className="screen-header">
-        <h2>Reporte de Ventas</h2>
-        <p className="screen-sub">Métricas clave e historial de ventas</p>
+        <h2>Informe Económico</h2>
+        <p className="screen-sub">Control de ventas, rentabilidad y KPIs financieros de IngenioSnack</p>
       </div>
 
-      {/* Tarjetas de estadísticas */}
-      <div className="stats-grid">
+      {/* Tarjetas de Estadísticas Principales */}
+      <div className="stats-grid" style={{ marginBottom: '24px' }}>
         {statCards.map((c, i) => {
           const Icon = c.icon;
           return (
-            <div key={i} className={`stat-card ${c.color}`}>
-              <div className="si"><Icon size={24} /></div>
-              <div className="sv">{c.value}</div>
-              <div className="sl">{c.label}</div>
+            <div key={i} className={`stat-card ${c.color}`} style={{ borderRadius: '4px' }}>
+              <div className="si" style={{ color: 'var(--text)' }}><Icon size={20} /></div>
+              <div className="sv" style={{ fontSize: '20px', fontWeight: 800, margin: '6px 0' }}>{c.value}</div>
+              <div className="sl" style={{ textTransform: 'uppercase', fontSize: '10px', tracking: '0.5px', color: 'var(--text-muted)' }}>{c.label}</div>
             </div>
           );
         })}
       </div>
 
       {/* Fila de gráficos principales */}
-      <div className="charts-section-grid">
-        <div className="chart-card">
-          <h3>
-            <TrendingUp size={18} style={{ color: 'var(--secondary)' }} />
+      <div className="charts-section-grid" style={{ gap: '24px', marginBottom: '24px' }}>
+        <div className="chart-card" style={{ borderRadius: '4px', border: '1px solid var(--border)' }}>
+          <h3 style={{ fontSize: '14px', fontWeight: 800, display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '16px' }}>
+            <TrendingUp size={16} style={{ color: 'var(--primary)' }} />
             Tendencia de Ventas (Últimos 7 días)
           </h3>
           <LineChart data={getLast7DaysSales(pedidos)} prefix="S/ " />
         </div>
-        <div className="chart-card">
-          <h3>
-            <BarChart3 size={18} style={{ color: 'var(--success)' }} />
-            Pedidos por Estado
+        <div className="chart-card" style={{ borderRadius: '4px', border: '1px solid var(--border)' }}>
+          <h3 style={{ fontSize: '14px', fontWeight: 800, display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '16px' }}>
+            <BarChart3 size={16} style={{ color: 'var(--secondary)' }} />
+            Estructura de Pedidos por Estado
           </h3>
           <BarChart data={getOrdersByStatus(pedidos)} />
         </div>
       </div>
 
-      <div className="rep-grid">
+      <div className="rep-grid" style={{ display: 'grid', gridTemplateColumns: '1fr 2fr', gap: '24px' }}>
         {/* Caja del día */}
-        <div className="rep-sec">
-          <h3><Calendar size={18} style={{ marginRight: '8px', verticalAlign: 'middle', color: 'var(--primary)' }} /> Caja de hoy</h3>
+        <div className="rep-sec" style={{ background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: '4px', padding: '20px' }}>
+          <h3 style={{ fontSize: '14px', fontWeight: 800, display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '16px' }}>
+            <Calendar size={16} style={{ color: 'var(--primary)' }} /> Caja Diaria
+          </h3>
           <div style={{
-            background: 'linear-gradient(135deg, #2D7A4F, #1A4D32)',
-            borderRadius: '12px', padding: '20px', color: '#fff', marginBottom: '16px', textAlign: 'center'
+            background: 'var(--primary)',
+            borderRadius: '4px',
+            padding: '24px 16px',
+            color: 'var(--surface)',
+            marginBottom: '16px',
+            textAlign: 'center'
           }}>
-            <div style={{ fontSize: '12px', fontWeight: 700, opacity: 0.8, marginBottom: '4px', textTransform: 'uppercase', letterSpacing: '1px' }}>
-              Total cobrado hoy
+            <div style={{ fontSize: '11px', fontWeight: 700, opacity: 0.9, marginBottom: '6px', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+              Total Cobrado Hoy
             </div>
-            <div style={{ fontSize: '36px', fontWeight: 900 }}>S/ {cajaHoy.toFixed(2)}</div>
-            <div style={{ fontSize: '13px', opacity: 0.75, marginTop: '4px' }}>
+            <div style={{ fontSize: '32px', fontWeight: 900 }}>S/ {cajaHoy.toFixed(2)}</div>
+            <div style={{ fontSize: '12px', opacity: 0.85, marginTop: '6px' }}>
               {entregadosHoy.length} pedidos entregados
             </div>
           </div>
-          <div className="stats-list">
-            <div className="stat-row">
+          <div className="stats-list" style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+            <div className="stat-row" style={{ display: 'flex', justifyContent: 'space-between', fontSize: '13px', paddingBottom: '8px', borderBottom: '1px solid var(--border)' }}>
               <span>Pendientes activos hoy</span>
-              <strong>{pendientesHoy.length}</strong>
+              <strong style={{ fontWeight: 800 }}>{pendientesHoy.length}</strong>
             </div>
-            <div className="stat-row hl">
-              <span>Total esperado (activos)</span>
+            <div className="stat-row hl" style={{ display: 'flex', justifyContent: 'space-between', fontSize: '13px', color: 'var(--primary)', fontWeight: 700 }}>
+              <span>Ingresos en espera</span>
               <strong>S/ {pendientesHoy.reduce((a, p) => a + p.total, 0).toFixed(2)}</strong>
             </div>
           </div>
         </div>
 
         {/* Rendimiento de Productos & Distribución */}
-        <div className="rep-sec">
-          <h3><BarChart3 size={18} style={{ marginRight: '8px', verticalAlign: 'middle', color: 'var(--primary)' }} /> Ventas y Distribución</h3>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))', gap: '24px', marginTop: '16px' }}>
+        <div className="rep-sec" style={{ background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: '4px', padding: '20px' }}>
+          <h3 style={{ fontSize: '14px', fontWeight: 800, display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '16px' }}>
+            <PieChart size={16} style={{ color: 'var(--secondary)' }} /> Desglose de Ventas
+          </h3>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '24px' }}>
             {/* Categorías */}
             <div>
-              <h4 style={{ fontSize: '13px', color: 'var(--text-muted)', marginBottom: '16px', textTransform: 'uppercase', fontWeight: 800, letterSpacing: '0.5px' }}>
-                <PieChart size={14} style={{ marginRight: '6px', verticalAlign: 'middle' }} /> Ventas por Categoría
+              <h4 style={{ fontSize: '11px', color: 'var(--text-muted)', marginBottom: '16px', textTransform: 'uppercase', fontWeight: 800, letterSpacing: '0.5px' }}>
+                Ventas por Categoría
               </h4>
               <DonutChart data={getSalesByCategory(masVendidos)} prefix="S/ " />
             </div>
 
             {/* Top Ventas */}
             <div>
-              <h4 style={{ fontSize: '13px', color: 'var(--text-muted)', marginBottom: '16px', textTransform: 'uppercase', fontWeight: 800, letterSpacing: '0.5px' }}>
+              <h4 style={{ fontSize: '11px', color: 'var(--text-muted)', marginBottom: '16px', textTransform: 'uppercase', fontWeight: 800, letterSpacing: '0.5px' }}>
                 Top 5 Más Vendidos
               </h4>
               {!masVendidos.length ? (
-                <div className="empty-state" style={{ padding: '24px 10px' }}>
-                  <p>No hay ventas aún.<br /><small>Aparecen cuando los pedidos se marcan como <strong>Recogidos</strong>.</small></p>
+                <div className="empty-state" style={{ padding: '24px 10px', textAlign: 'center', border: '1px dashed var(--border)', borderRadius: '4px' }}>
+                  <p style={{ fontSize: '13px', color: 'var(--text-muted)' }}>No hay ventas registradas aún.</p>
                 </div>
               ) : (
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
@@ -208,22 +241,21 @@ export default function Reporte() {
                     const maxCant = masVendidos[0].cantidad;
                     const pct = Math.round((mv.cantidad / maxCant) * 100);
                     return (
-                      <div key={i} style={{ padding: '10px 12px', background: 'var(--bg)', borderRadius: '10px' }}>
-                        <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '4px' }}>
-                          <span style={{ fontWeight: 700, fontSize: '13px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: '140px' }}>
-                            <span style={{ color: 'var(--text-muted)', marginRight: '6px', fontWeight: 900 }}>#{i + 1}</span>
+                      <div key={i} style={{ padding: '10px 12px', background: 'var(--bg)', borderRadius: '4px', border: '1px solid var(--border)' }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '6px' }}>
+                          <span style={{ fontWeight: 700, fontSize: '12px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: '120px' }}>
+                            <span style={{ color: 'var(--text-muted)', marginRight: '6px', fontWeight: 800 }}>#{i + 1}</span>
                             {mv.nombre}
                           </span>
-                          <span style={{ fontWeight: 800, color: 'var(--primary)', fontSize: '12px' }}>
+                          <span style={{ fontWeight: 800, color: 'var(--primary)', fontSize: '11px' }}>
                             {mv.cantidad} uds · S/ {mv.ingresos.toFixed(2)}
                           </span>
                         </div>
-                        <div style={{ background: 'var(--border)', borderRadius: '99px', height: '6px', overflow: 'hidden' }}>
+                        <div style={{ background: 'var(--border)', height: '4px', overflow: 'hidden', borderRadius: '2px' }}>
                           <div style={{
-                            width: `${pct}%`, height: '100%', borderRadius: '99px',
-                            background: i === 0
-                              ? 'linear-gradient(90deg, var(--secondary), var(--primary))'
-                              : 'var(--primary-light)',
+                            width: `${pct}%`,
+                            height: '100%',
+                            background: 'var(--primary)',
                             transition: 'width 0.6s ease'
                           }} />
                         </div>

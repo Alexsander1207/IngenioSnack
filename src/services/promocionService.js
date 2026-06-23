@@ -70,14 +70,34 @@ async function crearPromocion(datos) {
     disponible: true,
     activo: true,
   };
+  if (datos.imagen_url) {
+    nuevaPromo.imagen_url = datos.imagen_url;
+  }
 
-  const { data: promo, error: errPromo } = await supabase
+  let promo;
+  const insertResult = await supabase
     .from(TABLA_PROMO)
     .insert([nuevaPromo])
-    .select()
-    .single();
+    .select();
 
-  if (errPromo) throw new Error(errPromo.message);
+  if (insertResult.error) {
+    // Si falla porque no existe la columna imagen_url, reintentamos sin ella
+    if (insertResult.error.message.includes("imagen_url") && datos.imagen_url) {
+      console.warn("Columna 'imagen_url' no existe en 'promociones'. Reintentando sin imagen...");
+      delete nuevaPromo.imagen_url;
+      const retryResult = await supabase
+        .from(TABLA_PROMO)
+        .insert([nuevaPromo])
+        .select()
+        .single();
+      if (retryResult.error) throw new Error(retryResult.error.message);
+      promo = retryResult.data;
+    } else {
+      throw new Error(insertResult.error.message);
+    }
+  } else {
+    promo = insertResult.data[0];
+  }
 
   // Insertar los items de la promoción
   const itemsInsert = datos.productos.map((p) => ({
@@ -120,6 +140,7 @@ async function obtenerPromocion(id) {
 
   return {
     ...promo,
+    imagenUrl: promo.imagen_url || null,
     items: (items || []).map((it) => ({
       id: it.id,
       productoId: it.producto_id,
@@ -138,7 +159,7 @@ async function listarPromociones() {
     .from(TABLA_PROMO)
     .select('*')
     .eq('activo', true)
-    .order('created_at', { ascending: false });
+    .order('creado_en', { ascending: false });
 
   if (errPromos) throw new Error(errPromos.message);
 
@@ -153,6 +174,7 @@ async function listarPromociones() {
 
     result.push({
       ...promo,
+      imagenUrl: promo.imagen_url || null,
       items: (items || []).map((it) => ({
         id: it.id,
         productoId: it.producto_id,

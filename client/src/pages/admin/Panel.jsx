@@ -151,187 +151,185 @@ export default function Panel() {
   );
 
   return (
-    <div className="screen" style={{ maxWidth: '1200px' }}>
-      <div className="screen-header" style={{ marginBottom: '16px' }}>
+    <div className="screen" style={{ width: '100%', maxWidth: '100%', padding: '20px 40px' }}>
+      <div className="screen-header" style={{ marginBottom: '24px' }}>
         <h2>Panel Principal</h2>
-        <p className="screen-sub">Métricas clave, ventas y pedidos activos</p>
+        <p className="screen-sub">Métricas clave, ventas y pedidos activos del negocio</p>
       </div>
-      <div id="panel-content">
-        {/* Tarjetas de estadísticas */}
-        <div className="stats-grid">
-          <div className="stat-card c-primary">
-            <div className="si"><Receipt /></div>
-            <div className="sv">{s.totalPedidos}</div>
-            <div className="sl">Total pedidos</div>
+
+      <div id="panel-content" style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
+        {/* Fila 1: Tarjetas de estadísticas */}
+        <div className="stats-grid" style={{ gap: '16px', display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))' }}>
+          <div className="stat-card c-primary" style={{ borderRadius: '4px', border: '1px solid #EFE7E0', background: '#FFF', borderLeft: '4px solid var(--primary)', padding: '16px' }}>
+            <div className="si" style={{ color: 'var(--primary)', marginBottom: '8px' }}><Receipt /></div>
+            <div className="sv" style={{ fontSize: '24px', fontWeight: 900, color: 'var(--text)' }}>{s.totalPedidos}</div>
+            <div className="sl" style={{ fontSize: '11px', color: 'var(--text-muted)' }}>Total pedidos</div>
           </div>
-          <div className="stat-card c-warning">
-            <div className="si"><Hourglass /></div>
-            <div className="sv">{pend}</div>
-            <div className="sl">Pendientes</div>
+          <div className="stat-card c-warning" style={{ borderRadius: '4px', border: '1px solid #EFE7E0', background: '#FFF', borderLeft: '4px solid var(--warning)', padding: '16px' }}>
+            <div className="si" style={{ color: 'var(--warning)', marginBottom: '8px' }}><Hourglass /></div>
+            <div className="sv" style={{ fontSize: '24px', fontWeight: 900, color: 'var(--text)' }}>{pend}</div>
+            <div className="sl" style={{ fontSize: '11px', color: 'var(--text-muted)' }}>Pendientes</div>
           </div>
-          <div className="stat-card c-orange">
-            <div className="si"><Zap /></div>
-            <div className="sv">{activos}</div>
-            <div className="sl">Activos</div>
+          <div className="stat-card c-orange" style={{ borderRadius: '4px', border: '1px solid #EFE7E0', background: '#FFF', borderLeft: '4px solid var(--orange)', padding: '16px' }}>
+            <div className="si" style={{ color: 'var(--orange)', marginBottom: '8px' }}><Zap /></div>
+            <div className="sv" style={{ fontSize: '24px', fontWeight: 900, color: 'var(--text)' }}>{activos}</div>
+            <div className="sl" style={{ fontSize: '11px', color: 'var(--text-muted)' }}>Activos</div>
           </div>
-          <div className="stat-card c-success">
-            <div className="si"><CheckCircle /></div>
-            <div className="sv">{s.pedidosEntregados}</div>
-            <div className="sl">Recogidos</div>
+          <div className="stat-card c-success" style={{ borderRadius: '4px', border: '1px solid #EFE7E0', background: '#FFF', borderLeft: '4px solid var(--success)', padding: '16px' }}>
+            <div className="si" style={{ color: 'var(--success)', marginBottom: '8px' }}><CheckCircle /></div>
+            <div className="sv" style={{ fontSize: '24px', fontWeight: 900, color: 'var(--text)' }}>{s.pedidosEntregados}</div>
+            <div className="sl" style={{ fontSize: '11px', color: 'var(--text-muted)' }}>Recogidos</div>
           </div>
-          <div className="stat-card c-info">
-            <div className="si"><DollarSign /></div>
-            <div className="sv">S/ {s.ingresosTotales.toFixed(2)}</div>
-            <div className="sl">Ingresos</div>
+          <div className="stat-card c-info" style={{ borderRadius: '4px', border: '1px solid #EFE7E0', background: '#FFF', borderLeft: '4px solid var(--info)', padding: '16px' }}>
+            <div className="si" style={{ color: 'var(--info)', marginBottom: '8px' }}><DollarSign /></div>
+            <div className="sv" style={{ fontSize: '24px', fontWeight: 900, color: 'var(--text)' }}>S/ {s.ingresosTotales.toFixed(2)}</div>
+            <div className="sl" style={{ fontSize: '11px', color: 'var(--text-muted)' }}>Ingresos</div>
           </div>
-          <div className="stat-card c-neutral">
-            <div className="si"><Users /></div>
-            <div className="sv">{s.estudiantesRegistrados}</div>
-            <div className="sl">Estudiantes</div>
+          <div className="stat-card c-neutral" style={{ borderRadius: '4px', border: '1px solid #EFE7E0', background: '#FFF', borderLeft: '4px solid var(--neutral)', padding: '16px' }}>
+            <div className="si" style={{ color: 'var(--neutral)', marginBottom: '8px' }}><Users /></div>
+            <div className="sv" style={{ fontSize: '24px', fontWeight: 900, color: 'var(--text)' }}>{s.estudiantesRegistrados}</div>
+            <div className="sl" style={{ fontSize: '11px', color: 'var(--text-muted)' }}>Estudiantes</div>
           </div>
         </div>
 
-        {/* Dashboard Grid Principal */}
-        <div className="dashboard-main-grid">
-          {/* Columna Izquierda: Tendencia y Pedidos */}
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '20px', minWidth: 0 }}>
-            {/* Gráfico de tendencia de ventas semanal */}
-            <div className="chart-card">
-              <h3>
-                <TrendingUp size={18} style={{ color: 'var(--secondary)' }} />
-                Tendencia de Ventas (Últimos 7 días)
-              </h3>
-              <LineChart data={getLast7DaysSales(pedidos)} prefix="S/ " />
-            </div>
+        {/* Fila 2: Ventas y Caja */}
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: '20px' }}>
+          {/* Gráfico de tendencia de ventas semanal */}
+          <div className="chart-card" style={{ gridColumn: 'span 2', borderRadius: '4px', border: '1px solid #EFE7E0', background: '#FFF', padding: '20px' }}>
+            <h3 style={{ display: 'flex', alignItems: 'center', gap: '8px', color: 'var(--text)', fontSize: '15px', fontWeight: 800, marginBottom: '16px' }}>
+              <TrendingUp size={18} style={{ color: 'var(--secondary)' }} />
+              Tendencia de Ventas (Últimos 7 días)
+            </h3>
+            <LineChart data={getLast7DaysSales(pedidos)} prefix="S/ " />
+          </div>
 
-            {/* Pedidos activos */}
-            <div className="panel-section" style={{ alignSelf: 'stretch' }}>
-              <h3>Pedidos activos ({activos})</h3>
-              {activos === 0 ? (
-                <div className="empty-state" style={{ padding: '32px 10px' }}>
-                  <p>No hay pedidos activos en este momento.</p>
-                </div>
-              ) : (
-                <div className="table-wrap">
-                  <table className="data-table">
-                    <thead>
-                      <tr>
-                        <th>ID Pedido</th>
-                        <th>Estudiante</th>
-                        <th>Total</th>
-                        <th>Estado</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {activosList.map(p => (
-                        <tr key={p.id}>
-                          <td><strong>{p.id}</strong></td>
-                          <td>{p.nombreEstudiante}</td>
-                          <td>S/ {p.total.toFixed(2)}</td>
-                          <td><span className={`badge ${getBadgeClass(p.estado)}`}>{p.estado}</span></td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-              )}
+          {/* Caja de hoy */}
+          <div className="rep-sec" style={{ borderRadius: '4px', border: '1px solid #EFE7E0', background: '#FFF', padding: '20px' }}>
+            <h3 style={{ fontSize: '15px', fontWeight: 800, color: 'var(--text)', marginBottom: '16px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <Calendar size={18} style={{ color: 'var(--primary)' }} />
+              Caja de hoy
+            </h3>
+            <div style={{
+              background: 'linear-gradient(135deg, #2D7A4F, #1A4D32)',
+              borderRadius: '4px', padding: '20px', color: '#fff', marginBottom: '14px', textAlign: 'center'
+            }}>
+              <div style={{ fontSize: '11px', fontWeight: 700, opacity: 0.8, marginBottom: '4px', textTransform: 'uppercase', letterSpacing: '1px' }}>
+                Total cobrado hoy
+              </div>
+              <div style={{ fontSize: '32px', fontWeight: 900 }}>S/ {cajaHoy.toFixed(2)}</div>
+              <div style={{ fontSize: '12px', opacity: 0.75, marginTop: '4px' }}>
+                {entregadosHoy.length} pedidos entregados
+              </div>
+            </div>
+            <div className="stats-list" style={{ gap: '4px' }}>
+              <div className="stat-row" style={{ padding: '8px 12px', fontSize: '13px', background: '#FAF6F0', border: '1px solid #EFE7E0', borderRadius: '4px' }}>
+                <span style={{ color: 'var(--text-muted)' }}>Pendientes activos hoy</span>
+                <strong style={{ color: 'var(--text)' }}>{pendientesHoy.length}</strong>
+              </div>
+              <div className="stat-row hl" style={{ padding: '8px 12px', fontSize: '13px', background: '#FAF0E6', border: '1px solid #E6D4C3', borderRadius: '4px', fontWeight: 800 }}>
+                <span style={{ color: '#8B5A2B' }}>Total esperado (activos)</span>
+                <strong style={{ color: '#8B5A2B' }}>S/ {pendientesHoy.reduce((a, p) => a + p.total, 0).toFixed(2)}</strong>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Fila 3: Gráficos auxiliares y Rankings */}
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '20px' }}>
+          {/* Pedidos por Estado */}
+          <div className="chart-card" style={{ borderRadius: '4px', border: '1px solid #EFE7E0', background: '#FFF', padding: '20px' }}>
+            <h3 style={{ display: 'flex', alignItems: 'center', gap: '8px', color: 'var(--text)', fontSize: '15px', fontWeight: 800, marginBottom: '16px' }}>
+              <BarChart3 size={18} style={{ color: 'var(--success)' }} />
+              Pedidos por Estado
+            </h3>
+            <BarChart data={getOrdersByStatus(pedidos)} />
+          </div>
+
+          {/* Ventas por Categoría */}
+          <div className="rep-sec" style={{ borderRadius: '4px', border: '1px solid #EFE7E0', background: '#FFF', padding: '20px' }}>
+            <h3 style={{ fontSize: '15px', fontWeight: 800, color: 'var(--text)', marginBottom: '16px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <PieChart size={18} style={{ color: 'var(--primary)' }} />
+              Ventas por Categoría
+            </h3>
+            <div style={{ marginTop: '12px' }}>
+              <DonutChart data={getSalesByCategory(masVendidos)} prefix="S/ " />
             </div>
           </div>
 
-          {/* Columna Derecha: Caja, Pedidos por Estado, Categorías y Top */}
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '20px', minWidth: 0 }}>
-            {/* Caja de hoy */}
-            <div className="rep-sec">
-              <h3>
-                <Calendar size={18} style={{ marginRight: '8px', verticalAlign: 'middle', color: 'var(--primary)' }} />
-                Caja de hoy
-              </h3>
-              <div style={{
-                background: 'linear-gradient(135deg, #2D7A4F, #1A4D32)',
-                borderRadius: '12px', padding: '16px', color: '#fff', marginBottom: '14px', textAlign: 'center'
-              }}>
-                <div style={{ fontSize: '10px', fontWeight: 700, opacity: 0.8, marginBottom: '2px', textTransform: 'uppercase', letterSpacing: '1px' }}>
-                  Total cobrado hoy
-                </div>
-                <div style={{ fontSize: '28px', fontWeight: 900 }}>S/ {cajaHoy.toFixed(2)}</div>
-                <div style={{ fontSize: '11px', opacity: 0.75, marginTop: '2px' }}>
-                  {entregadosHoy.length} pedidos entregados
-                </div>
+          {/* Top 5 Más Vendidos */}
+          <div className="rep-sec" style={{ borderRadius: '4px', border: '1px solid #EFE7E0', background: '#FFF', padding: '20px' }}>
+            <h3 style={{ fontSize: '15px', fontWeight: 800, color: 'var(--text)', marginBottom: '16px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <TrendingUp size={18} style={{ color: 'var(--primary)' }} />
+              Top 5 Más Vendidos
+            </h3>
+            {!masVendidos.length ? (
+              <div className="empty-state" style={{ padding: '20px 10px', textAlign: 'center', color: 'var(--text-muted)' }}>
+                <p>No hay ventas aún.</p>
               </div>
-              <div className="stats-list">
-                <div className="stat-row" style={{ padding: '6px 8px', fontSize: '12.5px' }}>
-                  <span>Pendientes activos hoy</span>
-                  <strong>{pendientesHoy.length}</strong>
-                </div>
-                <div className="stat-row hl" style={{ padding: '6px 8px', fontSize: '12.5px' }}>
-                  <span>Total esperado (activos)</span>
-                  <strong>S/ {pendientesHoy.reduce((a, p) => a + p.total, 0).toFixed(2)}</strong>
-                </div>
-              </div>
-            </div>
-
-            {/* Pedidos por Estado */}
-            <div className="chart-card">
-              <h3>
-                <BarChart3 size={18} style={{ color: 'var(--success)' }} />
-                Pedidos por Estado
-              </h3>
-              <BarChart data={getOrdersByStatus(pedidos)} />
-            </div>
-
-            {/* Ventas por Categoría (Dona) */}
-            <div className="rep-sec">
-              <h3>
-                <PieChart size={18} style={{ marginRight: '8px', verticalAlign: 'middle', color: 'var(--primary)' }} />
-                Ventas por Categoría
-              </h3>
-              <div style={{ marginTop: '12px' }}>
-                <DonutChart data={getSalesByCategory(masVendidos)} prefix="S/ " />
-              </div>
-            </div>
-
-            {/* Top 5 Más Vendidos */}
-            <div className="rep-sec">
-              <h3>
-                <TrendingUp size={18} style={{ marginRight: '8px', verticalAlign: 'middle', color: 'var(--primary)' }} />
-                Top 5 Más Vendidos
-              </h3>
-              {!masVendidos.length ? (
-                <div className="empty-state" style={{ padding: '20px 10px' }}>
-                  <p>No hay ventas aún.</p>
-                </div>
-              ) : (
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginTop: '12px' }}>
-                  {masVendidos.slice(0, 5).map((mv, i) => {
-                    const maxCant = masVendidos[0].cantidad;
-                    const pct = Math.round((mv.cantidad / maxCant) * 100);
-                    return (
-                      <div key={i} style={{ padding: '8px 10px', background: 'var(--bg)', borderRadius: '10px' }}>
-                        <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '4px' }}>
-                          <span style={{ fontWeight: 700, fontSize: '12px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: '120px' }}>
-                            <span style={{ color: 'var(--text-muted)', marginRight: '6px', fontWeight: 900 }}>#{i + 1}</span>
-                            {mv.nombre}
-                          </span>
-                          <span style={{ fontWeight: 800, color: 'var(--primary)', fontSize: '11px' }}>
-                            {mv.cantidad} uds · S/ {mv.ingresos.toFixed(2)}
-                          </span>
-                        </div>
-                        <div style={{ background: 'var(--border)', borderRadius: '99px', height: '5px', overflow: 'hidden' }}>
-                          <div style={{
-                            width: `${pct}%`, height: '100%', borderRadius: '99px',
-                            background: i === 0
-                              ? 'linear-gradient(90deg, var(--secondary), var(--primary))'
-                              : 'var(--primary-light)',
-                            transition: 'width 0.6s ease'
-                          }} />
-                        </div>
+            ) : (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginTop: '12px' }}>
+                {masVendidos.slice(0, 5).map((mv, i) => {
+                  const maxCant = masVendidos[0].cantidad;
+                  const pct = Math.round((mv.cantidad / maxCant) * 100);
+                  return (
+                    <div key={i} style={{ padding: '10px 12px', background: '#FAF6F0', border: '1px solid #EFE7E0', borderRadius: '4px' }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '6px' }}>
+                        <span style={{ fontWeight: 700, fontSize: '12.5px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: '140px', color: 'var(--text)' }}>
+                          <span style={{ color: 'var(--text-muted)', marginRight: '6px', fontWeight: 900 }}>#{i + 1}</span>
+                          {mv.nombre}
+                        </span>
+                        <span style={{ fontWeight: 800, color: 'var(--primary)', fontSize: '12px' }}>
+                          {mv.cantidad} uds · S/ {mv.ingresos.toFixed(2)}
+                        </span>
                       </div>
-                    );
-                  })}
-                </div>
-              )}
-            </div>
+                      <div style={{ background: '#EFE7E0', borderRadius: '99px', height: '5px', overflow: 'hidden' }}>
+                        <div style={{
+                          width: `${pct}%`, height: '100%', borderRadius: '99px',
+                          background: i === 0
+                            ? 'linear-gradient(90deg, var(--secondary), var(--primary))'
+                            : 'var(--primary-light)',
+                          transition: 'width 0.6s ease'
+                        }} />
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
           </div>
+        </div>
+
+        {/* Fila 4: Pedidos activos a ancho completo */}
+        <div className="panel-section" style={{ borderRadius: '4px', border: '1px solid #EFE7E0', background: '#FFF', padding: '20px', width: '100%' }}>
+          <h3 style={{ fontSize: '15px', fontWeight: 800, color: 'var(--text)', marginBottom: '16px' }}>Pedidos activos ({activos})</h3>
+          {activos === 0 ? (
+            <div className="empty-state" style={{ padding: '32px 10px', textAlign: 'center', color: 'var(--text-muted)' }}>
+              <p>No hay pedidos activos en este momento.</p>
+            </div>
+          ) : (
+            <div className="table-wrap" style={{ border: '1px solid #EFE7E0', borderRadius: '4px', width: '100%' }}>
+              <table className="data-table" style={{ width: '100%' }}>
+                <thead>
+                  <tr style={{ background: 'var(--primary-dark)' }}>
+                    <th style={{ padding: '12px 16px', fontSize: '11px', borderTopLeftRadius: '4px' }}>ID Pedido</th>
+                    <th style={{ padding: '12px 16px', fontSize: '11px' }}>Estudiante</th>
+                    <th style={{ padding: '12px 16px', fontSize: '11px' }}>Total</th>
+                    <th style={{ padding: '12px 16px', fontSize: '11px', borderTopRightRadius: '4px' }}>Estado</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {activosList.map(p => (
+                    <tr key={p.id}>
+                      <td style={{ padding: '12px 16px' }}><strong>{p.id}</strong></td>
+                      <td style={{ padding: '12px 16px' }}>{p.nombreEstudiante}</td>
+                      <td style={{ padding: '12px 16px', fontWeight: 700 }}>S/ {p.total.toFixed(2)}</td>
+                      <td style={{ padding: '12px 16px' }}><span className={`badge ${getBadgeClass(p.estado)}`} style={{ borderRadius: '3px', fontSize: '10px' }}>{p.estado}</span></td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
         </div>
       </div>
     </div>

@@ -36,6 +36,22 @@ export default function Profile() {
     }
   };
 
+  const canjearPremioDinamico = async (progresoId, premioNombre) => {
+    try {
+      const res = await fetch(`/api/fidelidad/canjear-premio`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ estudianteId: user.id, progresoId })
+      });
+      const d = await res.json();
+      if (d.error) { toast(d.error, 'error'); return; }
+      toast(`🎁 ¡Felicidades! Reclamaste tu ${premioNombre} gratis.`, 'success');
+      fetchProfile();
+    } catch {
+      toast('Error de conexión', 'error');
+    }
+  };
+
   if (loading) return <div className="screen"><p className="loading">Cargando perfil...</p></div>;
   if (!data) return <div className="screen"><p className="error-msg">Error al cargar datos.</p></div>;
 
@@ -143,6 +159,51 @@ export default function Profile() {
               </div>
             )}
           </div>
+
+          {/* Premios Dinámicos Especiales */}
+          {b.premiosDinamicos && b.premiosDinamicos.length > 0 && (
+            <div className="fid-item" style={{ borderTop: '1px solid var(--border)', paddingTop: '16px', marginTop: '16px' }}>
+              <div className="fid-lbl" style={{ marginBottom: '12px' }}>
+                <Star size={14} style={{ marginRight: '5px', verticalAlign: 'middle', color: '#D97706' }} />
+                Premios y Promociones Especiales
+              </div>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                {b.premiosDinamicos.map(premio => {
+                  const pct = Math.min(100, Math.round((premio.cantidadAcumulada / premio.cantidadCriterio) * 100));
+                  return (
+                    <div key={premio.id} style={{ background: 'var(--bg)', borderRadius: '12px', padding: '12px 14px' }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '6px', fontSize: '13px' }}>
+                        <span style={{ fontWeight: 800 }}>{premio.reglaNombre}</span>
+                        <span style={{ fontWeight: 700, color: 'var(--primary)' }}>
+                          {premio.cantidadAcumulada} / {premio.cantidadCriterio}
+                        </span>
+                      </div>
+                      
+                      {/* Barra de progreso */}
+                      <div style={{ background: 'var(--border)', borderRadius: '99px', height: '6px', overflow: 'hidden', marginBottom: '8px' }}>
+                        <div style={{ width: `${pct}%`, height: '100%', background: 'linear-gradient(90deg, var(--secondary), var(--primary))', transition: 'width 0.3s' }} />
+                      </div>
+
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '11px', color: 'var(--text-muted)' }}>
+                        <span>Obtén 1 {premio.productoPremio} de regalo</span>
+                        {premio.premiosDisponibles > 0 ? (
+                          <button
+                            className="btn btn-primary"
+                            style={{ fontSize: '10px', padding: '4px 10px', height: 'auto', background: 'var(--success)' }}
+                            onClick={() => canjearPremioDinamico(premio.id, premio.productoPremio)}
+                          >
+                            Reclamar {premio.premiosDisponibles} premio(s)!
+                          </button>
+                        ) : (
+                          <span>Falta {premio.cantidadCriterio - premio.cantidadAcumulada} para ganar</span>
+                        )}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          )}
         </div>
       </div>
     </div>

@@ -19,6 +19,7 @@ const getCategoryEmoji = (cat) => {
 export default function Menu() {
   const [productos, setProductos] = useState([]);
   const [promociones, setPromociones] = useState([]);
+  const [categorias, setCategorias] = useState([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('Todos');
@@ -30,11 +31,12 @@ export default function Menu() {
     Promise.all([
       fetch('/api/productos').then(r => r.json()),
       fetch('/api/promociones').then(r => r.json()).catch(() => []),
+      fetch('/api/categorias').then(r => r.json()).catch(() => []),
     ])
-      .then(([prodData, promoData]) => {
+      .then(([prodData, promoData, catData]) => {
         setProductos(prodData);
-        // Solo mostrar promociones activas y disponibles
         setPromociones(Array.isArray(promoData) ? promoData.filter(p => p.disponible) : []);
+        setCategorias(Array.isArray(catData) ? catData : []);
         setLoading(false);
       })
       .catch(() => { toast('Error al cargar menú', 'error'); setLoading(false); });
@@ -42,7 +44,10 @@ export default function Menu() {
 
   if (loading) return <div className="screen"><p className="loading">Cargando menú...</p></div>;
 
-  const categoriesList = ['Todos', ...new Set(productos.map(p => p.categoria))];
+  const categoriesList = ['Todos', ...new Set([
+    ...categorias.map(c => c.nombre),
+    ...productos.map(p => p.categoria)
+  ])];
 
   const filteredProducts = productos.filter(p => {
     const matchesCategory = selectedCategory === 'Todos' || p.categoria === selectedCategory;
@@ -247,12 +252,33 @@ export default function Menu() {
                         className={`store-card border-${p.categoria.toLowerCase()} ${ua ? 'unavailable' : ''}`}
                       >
                         {/* Contenedor de Imagen con fondo temático */}
-                        <div className={`store-card-img-wrap bg-${p.categoria.toLowerCase()}`}>
+                        <div className={`store-card-img-wrap bg-${p.categoria.toLowerCase()}`} style={{ position: 'relative', display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden' }}>
                           {p.imagenUrl ? (
-                            <img src={p.imagenUrl} alt={p.nombre} />
-                          ) : (
-                            <span className="store-card-emoji">{getCategoryEmoji(p.categoria)}</span>
-                          )}
+                            <img
+                              src={p.imagenUrl}
+                              alt={p.nombre}
+                              onError={(e) => {
+                                e.target.style.display = 'none';
+                                const fallback = e.target.parentElement.querySelector('.store-card-fallback');
+                                if (fallback) fallback.style.display = 'flex';
+                              }}
+                              style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}
+                            />
+                          ) : null}
+                          <div
+                            className="store-card-fallback"
+                            style={{
+                              display: p.imagenUrl ? 'none' : 'flex',
+                              width: '100%',
+                              height: '100%',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              position: 'absolute',
+                              inset: 0
+                            }}
+                          >
+                            <span className="store-card-emoji" style={{ fontSize: '32px' }}>{getCategoryEmoji(p.categoria)}</span>
+                          </div>
 
                           {/* Floating Badges */}
                           {ua ? (
