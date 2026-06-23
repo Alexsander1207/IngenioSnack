@@ -1,12 +1,13 @@
 import { apiFetch } from '../../services/apiClient';
 import { useState, useEffect } from 'react';
 import { useToast } from '../../components/Toast';
-import { ClipboardList, Clock, CheckCircle2, Ban, Play, Check, CheckSquare, User } from 'lucide-react';
+import { ClipboardList, Clock, CheckCircle2, Ban, Play, Check, CheckSquare, User, RefreshCw } from 'lucide-react';
 import { createClient } from '@supabase/supabase-js';
 
 export default function Pedidos() {
   const [pedidos, setPedidos] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
   const { toast } = useToast();
 
   const normalizePedido = (pedido) => ({
@@ -23,16 +24,19 @@ export default function Pedidos() {
       : [],
   });
 
-  const loadPedidos = () => {
+  const loadPedidos = (manual = false) => {
+    if (manual) setRefreshing(true);
     apiFetch('/api/pedidos')
       .then(r => r.json())
       .then(data => {
         setPedidos(Array.isArray(data) ? data.map(normalizePedido) : []);
         setLoading(false);
+        if (manual) setRefreshing(false);
       })
-      .catch(err => {
+      .catch(() => {
         toast('Error al cargar pedidos', 'error');
         setLoading(false);
+        if (manual) setRefreshing(false);
       });
   };
 
@@ -111,8 +115,25 @@ export default function Pedidos() {
   return (
     <div className="screen" style={{ width: '100%', maxWidth: '100%', padding: '20px 40px' }}>
       <div className="screen-header" style={{ marginBottom: '24px' }}>
-        <h2>Panel Kanban de Pedidos</h2>
-        <p className="screen-sub">Gestión en tiempo real del flujo de pedidos de los estudiantes</p>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+          <div>
+            <h2>Panel Kanban de Pedidos</h2>
+            <p className="screen-sub">Gestión en tiempo real del flujo de pedidos de los estudiantes</p>
+          </div>
+          <button
+            onClick={() => loadPedidos(true)}
+            disabled={refreshing}
+            style={{
+              display: 'flex', alignItems: 'center', gap: '6px',
+              padding: '8px 16px', borderRadius: '4px', border: '1px solid #EFE7E0',
+              background: '#FFF', color: 'var(--text)', cursor: refreshing ? 'not-allowed' : 'pointer',
+              fontSize: '13px', fontWeight: 700, opacity: refreshing ? 0.6 : 1,
+            }}
+          >
+            <RefreshCw size={14} style={{ animation: refreshing ? 'spin 1s linear infinite' : 'none' }} />
+            {refreshing ? 'Actualizando...' : 'Actualizar'}
+          </button>
+        </div>
       </div>
 
       <div className="kanban-board" style={{ gap: '20px' }}>

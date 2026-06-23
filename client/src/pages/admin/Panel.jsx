@@ -17,7 +17,7 @@ import { LineChart, DonutChart, BarChart } from '../../components/Charts';
 
 export default function Panel() {
   const [data, setData] = useState({
-    s: null,
+    resumen: {},
     pend: 0,
     activos: 0,
     activosList: [],
@@ -30,21 +30,28 @@ export default function Panel() {
   useEffect(() => {
     Promise.all([
       apiFetch('/api/reporte').then(r => r.json()),
-      apiFetch('/api/pedidos').then(r => r.json())
+      apiFetch('/api/pedidos').then(r => r.json()),
+      apiFetch('/api/reportes/productos').then(r => r.json()),
     ])
-      .then(([rep, pedidos]) => {
+      .then(([resumenResp, pedidos, productosResp]) => {
         const pedidosList = Array.isArray(pedidos) ? pedidos.map(p => ({
           ...p,
           estado: p.estado === 'PREPARANDO' ? 'EN_PREPARACION' : p.estado,
           fecha: p.fecha || p.created_at,
           total: Number(p.total || 0),
+          nombreEstudiante: p.nombre_usuario || p.usuario_id || 'Estudiante',
         })) : [];
-        const s = rep?.estadisticas || {};
-        const masVendidos = Array.isArray(rep?.masVendidos) ? rep.masVendidos : [];
+        const resumen = resumenResp?.data || {};
+        const masVendidos = (productosResp?.data?.productos_mas_vendidos || []).map(mv => ({
+          nombre: mv.nombre,
+          cantidad: mv.cantidad_vendida,
+          ingresos: Number(mv.total),
+          categoria: mv.categoria || 'Otros',
+        }));
         const pend = pedidosList.filter(p => p.estado === 'PENDIENTE').length;
         const activosList = pedidosList.filter(p => !['RECOGIDO', 'CANCELADO'].includes(p.estado));
         setData({
-          s,
+          resumen,
           pend,
           activos: activosList.length,
           activosList,
@@ -53,7 +60,7 @@ export default function Panel() {
         });
         setLoading(false);
       })
-      .catch(err => {
+      .catch(() => {
         toast('Error al cargar panel', 'error');
         setLoading(false);
       });
@@ -144,7 +151,7 @@ export default function Panel() {
     }));
   };
 
-  const { s, pend, activos, activosList, pedidos, masVendidos } = data;
+  const { resumen, pend, activos, activosList, pedidos, masVendidos } = data;
 
   // Caja del día (Pedidos cobrados hoy)
   const hoy = new Date().toDateString();
@@ -169,7 +176,7 @@ export default function Panel() {
         <div className="stats-grid" style={{ gap: '16px', display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))' }}>
           <div className="stat-card c-primary" style={{ borderRadius: '4px', border: '1px solid #EFE7E0', background: '#FFF', borderLeft: '4px solid var(--primary)', padding: '16px' }}>
             <div className="si" style={{ color: 'var(--primary)', marginBottom: '8px' }}><Receipt /></div>
-            <div className="sv" style={{ fontSize: '24px', fontWeight: 900, color: 'var(--text)' }}>{s.totalPedidos}</div>
+            <div className="sv" style={{ fontSize: '24px', fontWeight: 900, color: 'var(--text)' }}>{resumen.total_pedidos ?? 0}</div>
             <div className="sl" style={{ fontSize: '11px', color: 'var(--text-muted)' }}>Total pedidos</div>
           </div>
           <div className="stat-card c-warning" style={{ borderRadius: '4px', border: '1px solid #EFE7E0', background: '#FFF', borderLeft: '4px solid var(--warning)', padding: '16px' }}>
@@ -184,17 +191,17 @@ export default function Panel() {
           </div>
           <div className="stat-card c-success" style={{ borderRadius: '4px', border: '1px solid #EFE7E0', background: '#FFF', borderLeft: '4px solid var(--success)', padding: '16px' }}>
             <div className="si" style={{ color: 'var(--success)', marginBottom: '8px' }}><CheckCircle /></div>
-            <div className="sv" style={{ fontSize: '24px', fontWeight: 900, color: 'var(--text)' }}>{s.pedidosEntregados}</div>
+            <div className="sv" style={{ fontSize: '24px', fontWeight: 900, color: 'var(--text)' }}>{resumen.pedidos_recogidos ?? 0}</div>
             <div className="sl" style={{ fontSize: '11px', color: 'var(--text-muted)' }}>Recogidos</div>
           </div>
           <div className="stat-card c-info" style={{ borderRadius: '4px', border: '1px solid #EFE7E0', background: '#FFF', borderLeft: '4px solid var(--info)', padding: '16px' }}>
             <div className="si" style={{ color: 'var(--info)', marginBottom: '8px' }}><DollarSign /></div>
-            <div className="sv" style={{ fontSize: '24px', fontWeight: 900, color: 'var(--text)' }}>S/ {s.ingresosTotales.toFixed(2)}</div>
+            <div className="sv" style={{ fontSize: '24px', fontWeight: 900, color: 'var(--text)' }}>S/ {Number(resumen.ventas_totales || 0).toFixed(2)}</div>
             <div className="sl" style={{ fontSize: '11px', color: 'var(--text-muted)' }}>Ingresos</div>
           </div>
           <div className="stat-card c-neutral" style={{ borderRadius: '4px', border: '1px solid #EFE7E0', background: '#FFF', borderLeft: '4px solid var(--neutral)', padding: '16px' }}>
             <div className="si" style={{ color: 'var(--neutral)', marginBottom: '8px' }}><Users /></div>
-            <div className="sv" style={{ fontSize: '24px', fontWeight: 900, color: 'var(--text)' }}>{s.estudiantesRegistrados}</div>
+            <div className="sv" style={{ fontSize: '24px', fontWeight: 900, color: 'var(--text)' }}>{resumen.estudiantes_registrados ?? 0}</div>
             <div className="sl" style={{ fontSize: '11px', color: 'var(--text-muted)' }}>Estudiantes</div>
           </div>
         </div>

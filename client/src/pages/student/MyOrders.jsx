@@ -13,6 +13,7 @@ export default function MyOrders() {
 
   const normalizeOrder = (pedido) => ({
     ...pedido,
+    estado: pedido.estado === 'PREPARANDO' ? 'EN_PREPARACION' : pedido.estado,
     fecha: pedido.fecha || pedido.created_at,
     items: Array.isArray(pedido.items)
       ? pedido.items.map((item) => ({

@@ -5,7 +5,8 @@ import { useToast } from '../../components/Toast';
 import { LineChart, DonutChart, BarChart } from '../../components/Charts';
 
 export default function Reporte() {
-  const [data, setData] = useState(null);
+  const [resumen, setResumen] = useState({});
+  const [masVendidos, setMasVendidos] = useState([]);
   const [pedidos, setPedidos] = useState([]);
   const [loading, setLoading] = useState(true);
   const { toast } = useToast();
@@ -14,9 +15,18 @@ export default function Reporte() {
     Promise.all([
       apiFetch('/api/reporte').then(r => r.json()),
       apiFetch('/api/pedidos').then(r => r.json()),
+      apiFetch('/api/reportes/productos').then(r => r.json()),
     ])
-      .then(([reporteData, pedidosData]) => {
-        setData(reporteData ?? {});
+      .then(([resumenResp, pedidosData, productosResp]) => {
+        setResumen(resumenResp?.data || {});
+        setMasVendidos(
+          (productosResp?.data?.productos_mas_vendidos || []).map(mv => ({
+            nombre: mv.nombre,
+            cantidad: mv.cantidad_vendida,
+            ingresos: Number(mv.total),
+            categoria: mv.categoria || 'Otros',
+          }))
+        );
         setPedidos(Array.isArray(pedidosData) ? pedidosData.map(p => ({
           ...p,
           estado: p.estado === 'PREPARANDO' ? 'EN_PREPARACION' : p.estado,
@@ -39,7 +49,7 @@ export default function Reporte() {
     );
   }
 
-  const { estadisticas: s = {}, masVendidos = [] } = data ?? {};
+  const s = resumen;
 
   // Cálculos de KPIs Recomendados
   const totalPedidos = pedidos.length;
@@ -141,8 +151,8 @@ export default function Reporte() {
     { label: 'Ticket Medio (KPI)', value: `S/ ${ticketMedio.toFixed(2)}`, icon: TrendingUp, color: 'c-primary' },
     { label: 'Tasa Cancelación (KPI)', value: `${tasaCancelacion.toFixed(1)}%`, icon: Percent, color: 'c-warning' },
     { label: 'Pedidos Totales', value: totalPedidos, icon: ShoppingBag, color: 'c-info' },
-    { label: 'Estudiantes Activos', value: s.estudiantesRegistrados, icon: Users, color: 'c-orange' },
-    { label: 'Productos en Menú', value: s.totalProductos, icon: Package, color: 'c-neutral' },
+    { label: 'Estudiantes Activos', value: s.estudiantes_registrados ?? 0, icon: Users, color: 'c-orange' },
+    { label: 'Productos en Menú', value: s.productos_activos ?? 0, icon: Package, color: 'c-neutral' },
   ];
 
   return (
