@@ -3,6 +3,8 @@ import { useState, useEffect, useRef } from 'react';
 import { Slash, Check, ImageIcon, X, Plus, Minus, Trash2, LayoutGrid, List } from 'lucide-react';
 import { useToast } from '../../components/Toast';
 
+const PRODUCTOS_ADMIN_URL = '/api/productos?admin=true';
+
 export default function Productos() {
   const [productos, setProductos] = useState([]);
   const [categorias, setCategorias] = useState([]);
@@ -32,21 +34,24 @@ export default function Productos() {
   const loadData = async () => {
     try {
       const [prodRes, catRes] = await Promise.all([
-        apiFetch('/api/productos'),
+        apiFetch(PRODUCTOS_ADMIN_URL),
         apiFetch('/api/categorias')
       ]);
-      
+
       const prods = await prodRes.json();
       const cats = await catRes.json();
-      
-      setProductos(prods);
-      setCategorias(cats);
-      
-      if (cats.length > 0) {
+
+      const productosSeguros = Array.isArray(prods) ? prods : [];
+      const categoriasSeguras = Array.isArray(cats) ? cats : [];
+
+      setProductos(productosSeguros);
+      setCategorias(categoriasSeguras);
+
+      if (categoriasSeguras.length > 0) {
         setForm(prev => ({
           ...prev,
-          categoriaId: cats[0].id,
-          categoria: cats[0].nombre
+          categoriaId: categoriasSeguras[0].id,
+          categoria: categoriasSeguras[0].nombre
         }));
       }
       setLoading(false);
@@ -89,7 +94,7 @@ export default function Productos() {
       formData.append('nombre', form.nombre);
       formData.append('precio', form.precio);
       formData.append('categoria', form.categoria);
-      formData.append('categoriaId', form.categoriaId);
+      formData.append('categoria_id', form.categoriaId);
       if (form.stock) formData.append('stock', form.stock);
       if (form.imagen) formData.append('imagen', form.imagen);
 
@@ -112,11 +117,11 @@ export default function Productos() {
         imagen: null
       });
       setPreview(null);
-      
+
       // Reload products
-      const pRes = await apiFetch('/api/productos');
+      const pRes = await apiFetch(PRODUCTOS_ADMIN_URL);
       const prods = await pRes.json();
-      setProductos(prods);
+      setProductos(Array.isArray(prods) ? prods : []);
     } catch (err) {
       toast('Error al guardar', 'error');
     } finally {
@@ -139,11 +144,11 @@ export default function Productos() {
       if (res.ok) {
         toast(`Producto desactivado${razon ? ': ' + razon : ''}`);
         setRazonModal(null);
-        
+
         // Reload products
-        const pRes = await apiFetch('/api/productos');
+        const pRes = await apiFetch(PRODUCTOS_ADMIN_URL);
         const prods = await pRes.json();
-        setProductos(prods);
+        setProductos(Array.isArray(prods) ? prods : []);
       } else {
         const d = await res.json();
         toast(d.error || 'Error', 'error');
@@ -162,11 +167,11 @@ export default function Productos() {
       });
       if (res.ok) {
         toast('Producto activado', 'success');
-        
+
         // Reload products
-        const pRes = await apiFetch('/api/productos');
+        const pRes = await apiFetch(PRODUCTOS_ADMIN_URL);
         const prods = await pRes.json();
-        setProductos(prods);
+        setProductos(Array.isArray(prods) ? prods : []);
       }
     } catch (err) {
       toast('Error', 'error');
@@ -185,9 +190,9 @@ export default function Productos() {
       if (res.ok) {
         toast('Producto eliminado correctamente', 'success');
         // Reload products
-        const pRes = await apiFetch('/api/productos');
+        const pRes = await apiFetch(PRODUCTOS_ADMIN_URL);
         const prods = await pRes.json();
-        setProductos(prods);
+        setProductos(Array.isArray(prods) ? prods : []);
       } else {
         const d = await res.json();
         toast(d.error || 'Error al eliminar', 'error');
@@ -208,9 +213,9 @@ export default function Productos() {
       if (res.ok) {
         toast(`Stock actualizado a ${newStock}`, 'success');
         // Reload products
-        const pRes = await apiFetch('/api/productos');
+        const pRes = await apiFetch(PRODUCTOS_ADMIN_URL);
         const prods = await pRes.json();
-        setProductos(prods);
+        setProductos(Array.isArray(prods) ? prods : []);
       } else {
         const d = await res.json();
         toast(d.error || 'Error al actualizar stock', 'error');
@@ -235,19 +240,20 @@ export default function Productos() {
         // Reload categories list
         const r = await apiFetch('/api/categorias');
         const cats = await r.json();
-        setCategorias(cats);
-        
+        const categoriasSeguras = Array.isArray(cats) ? cats : [];
+        setCategorias(categoriasSeguras);
+
         // Reload products just in case category names/ids changed
-        const pRes = await apiFetch('/api/productos');
+        const pRes = await apiFetch(PRODUCTOS_ADMIN_URL);
         const prods = await pRes.json();
-        setProductos(prods);
+        setProductos(Array.isArray(prods) ? prods : []);
 
         // Adjust form state if selected category was deleted
-        if (cats.length > 0) {
+        if (categoriasSeguras.length > 0) {
           setForm(prev => ({
             ...prev,
-            categoriaId: cats[0].id,
-            categoria: cats[0].nombre
+            categoriaId: categoriasSeguras[0].id,
+            categoria: categoriasSeguras[0].nombre
           }));
         } else {
           setForm(prev => ({
@@ -305,13 +311,22 @@ export default function Productos() {
 
   if (loading) return <div className="screen"><p className="loading">Cargando...</p></div>;
 
+  const getProductCategoryName = (producto) => {
+    return producto.categoria
+      || categorias.find(cat => cat.id === (producto.categoriaId || producto.categoria_id))?.nombre
+      || 'Sin categoria';
+  };
+
   // Filtrar productos
   const filteredProducts = selectedCat === 'Todos'
     ? productos
-    : productos.filter(p => p.categoria === selectedCat || p.categoriaId === selectedCat);
+    : productos.filter(p => getProductCategoryName(p) === selectedCat || p.categoriaId === selectedCat);
 
   // Lista de categorías para las pestañas de filtrado
-  const categoriesList = ['Todos', ...categorias.map(c => c.nombre)];
+  const categoriesList = ['Todos', ...new Set([
+    ...categorias.map(c => c.nombre),
+    ...productos.map(getProductCategoryName).filter(Boolean)
+  ])];
 
   return (
     <div className="screen" style={{ width: '100%', maxWidth: '100%', padding: '20px 40px' }}>
@@ -643,7 +658,7 @@ export default function Productos() {
 
                   {/* Datos */}
                   <div style={{ padding: '14px', flexGrow: 1, display: 'flex', flexDirection: 'column' }}>
-                    <span style={{ fontSize: '11px', color: '#8A6A55', textTransform: 'uppercase', fontWeight: '800', letterSpacing: '0.5px' }}>{p.categoria}</span>
+                    <span style={{ fontSize: '11px', color: '#8A6A55', textTransform: 'uppercase', fontWeight: '800', letterSpacing: '0.5px' }}>{getProductCategoryName(p)}</span>
                     <h4 style={{ fontSize: '15px', fontWeight: '800', color: 'var(--text)', margin: '4px 0 8px 0', minHeight: '40px' }}>{p.nombre}</h4>
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginTop: 'auto', borderTop: '1px solid #FDF3EA', paddingTop: '8px' }}>
                       <span style={{ fontSize: '11px', color: '#B0A090' }}>Precio</span>
@@ -807,7 +822,7 @@ export default function Productos() {
                         </div>
                       )}
                     </td>
-                    <td style={{ padding: '10px 16px', color: '#8A6A55', fontWeight: '500' }}>{p.categoria}</td>
+                    <td style={{ padding: '10px 16px', color: '#8A6A55', fontWeight: '500' }}>{getProductCategoryName(p)}</td>
                     <td style={{ padding: '10px 16px', fontWeight: '700' }}>S/ {p.precio.toFixed(2)}</td>
                     <td style={{ padding: '10px 16px' }}>
                       <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>

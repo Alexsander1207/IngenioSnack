@@ -9,7 +9,11 @@ const { supabase } = require('../config/supabaseClient');
 
 router.get('/', async (req, res) => {
   try {
-    const productos = await productoService.listarProductos(req.query.categoriaId);
+    const { categoriaId, admin, incluirNoDisponibles } = req.query;
+    const verTodosActivos = admin === 'true' || incluirNoDisponibles === 'true';
+    const productos = verTodosActivos
+      ? await productoService.listarProductos(categoriaId)
+      : await productoService.listarProductosDisponibles(categoriaId);
     res.json(productos);
   } catch (error) {
     res.status(500).json({ error: error.message });
@@ -27,9 +31,14 @@ router.get('/movimientos', async (req, res) => {
 
 router.post('/', upload.single('imagen'), async (req, res) => {
   try {
-    const { nombre, precio, categoria, stock, categoriaId } = req.body;
-    if (!nombre || precio == null || !categoria) {
-      return res.status(400).json({ error: 'nombre, precio y categoria son requeridos.' });
+    const { nombre, precio, categoria, stock, categoriaId, categoria_id } = req.body;
+    if (!nombre || String(nombre).trim() === '' || precio == null || String(precio).trim() === '') {
+      return res.status(400).json({ error: 'nombre y precio son requeridos.' });
+    }
+
+    const parsedPrice = parseFloat(precio);
+    if (Number.isNaN(parsedPrice) || parsedPrice <= 0) {
+      return res.status(400).json({ error: 'precio debe ser un numero mayor a 0.' });
     }
       
     let imagenUrl = null;
@@ -90,11 +99,11 @@ router.post('/', upload.single('imagen'), async (req, res) => {
     
     const p = await productoService.crearProducto({
       nombre: nombre.trim(),
-      precio: parseFloat(precio),
-      categoria,
+      precio: parsedPrice,
+      categoria: categoria || null,
       imagen_url: imagenUrl,
       stock: isNaN(parsedStock) ? 15 : parsedStock,
-      categoriaId: categoriaId || null
+      categoria_id: categoria_id || categoriaId || null
     });
     res.status(201).json(p);
   } catch (error) {

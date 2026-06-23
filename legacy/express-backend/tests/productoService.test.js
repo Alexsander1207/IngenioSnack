@@ -68,6 +68,25 @@ describe('crearProducto', () => {
     expect(insertado.disponible).toBe(true);
     expect(producto.id).toBe('uuid-1');
   });
+
+  test('registra categoria_id cuando se proporciona', async () => {
+    __chain.__result = {
+      data: { id: 'uuid-2', nombre: 'Cafe', precio: 4, activo: true, categoria_id: 'cat-1' },
+      error: null
+    };
+
+    const producto = await productoService.crearProducto({
+      nombre: 'Cafe',
+      precio: 4,
+      categoria: 'Bebida',
+      categoria_id: 'cat-1'
+    });
+
+    const insertado = __chain.insert.mock.calls[0][0][0];
+    expect(insertado.categoria_id).toBe('cat-1');
+    expect(producto.categoriaId).toBe('cat-1');
+    expect(producto.categoria_id).toBe('cat-1');
+  });
 });
 
 describe('listados', () => {
