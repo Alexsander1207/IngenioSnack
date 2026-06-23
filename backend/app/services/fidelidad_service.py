@@ -1,10 +1,21 @@
-﻿import math
+import math
 from decimal import Decimal
 from uuid import UUID
 
+from fastapi import HTTPException, status
+
 from app.models.fidelidad import FidelidadMovimiento, TipoMovimientoFidelidad
 from app.repositories.fidelidad_repository import FidelidadRepository
-from app.schemas.fidelidad_schema import MovimientoFidelidadCreate, ResumenFidelidad
+from app.schemas.fidelidad_schema import (
+    CanjearPremioRequest,
+    CanjeResponse,
+    FidelidadReglaCreate,
+    FidelidadReglaRead,
+    FidelidadReglaUpdate,
+    MovimientoFidelidadCreate,
+    RankingFidelidadItem,
+    ResumenFidelidad,
+)
 
 
 class FidelidadService:
@@ -15,15 +26,51 @@ class FidelidadService:
         movimientos = self.repo.get_movimientos_by_usuario(usuario_id)
         puntos = sum(m.puntos for m in movimientos)
         sellos = sum(m.sellos for m in movimientos)
+        regla = self.repo.get_regla_activa_principal()
+        sellos_canje_cafe = regla.sellos_canje_cafe if regla else 10
+        cafes_gratis = sellos // sellos_canje_cafe if sellos_canje_cafe > 0 else 0
         return ResumenFidelidad(
             usuario_id=usuario_id,
             puntos=puntos,
             sellos=sellos,
+            sandwiches=sellos,
+            cafesGratis=cafes_gratis,
+            premiosDinamicos=[],
             movimientos=movimientos,
         )
 
     def get_movimientos(self, usuario_id: UUID) -> list[FidelidadMovimiento]:
         return self.repo.get_movimientos_by_usuario(usuario_id)
+
+    def get_ranking(self) -> list[RankingFidelidadItem]:
+        return [
+            RankingFidelidadItem(
+                id=usuario.id,
+                nombre=usuario.nombre,
+                correo=usuario.correo,
+                codigo=usuario.codigo_estudiante,
+                puntos=max(puntos, 0),
+                sellos=max(sellos, 0),
+                sandwiches=max(sellos, 0),
+            )
+            for usuario, puntos, sellos in self.repo.get_ranking()
+        ]
+
+    def list_reglas(self) -> list[FidelidadReglaRead]:
+        return [FidelidadReglaRead.model_validate(regla) for regla in self.repo.list_reglas()]
+
+    def create_regla(self, payload: FidelidadReglaCreate):
+        return self.repo.create_regla(**payload.model_dump())
+
+    def update_regla(self, regla_id: UUID, payload: FidelidadReglaUpdate):
+        regla = self.repo.get_regla_by_id(regla_id)
+        if regla is None:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Regla de fidelidad no encontrada.",
+            )
+        values = payload.model_dump(exclude_unset=True)
+        return self.repo.update_regla(regla, values)
 
     def acreditar_por_pedido(
         self,
@@ -33,32 +80,26 @@ class FidelidadService:
         descripcion: str | None = None,
     ) -> FidelidadMovimiento:
         """
-        Acredita puntos y un sello por un pedido recogido.
+        Acredita puntos y sellos por un pedido recogido.
 
         Idempotente: si ya existe una ACREDITACION_PEDIDO para este pedido_id,
         retorna el movimiento existente sin crear duplicado.
-
-        Integracion con FASE 7: pedido_service debe llamar a este metodo cuando
-        el estado de un pedido cambia a RECOGIDO:
-            fidelidad_service.acreditar_por_pedido(
-                usuario_id=pedido.usuario_id,
-                pedido_id=pedido.id,
-                total_pedido=pedido.total,
-            )
         """
         existing = self.repo.get_acreditacion_by_pedido(pedido_id)
         if existing:
             return existing
 
-        puntos = math.floor(float(total_pedido))
-        sellos = 1
+        regla = self.repo.get_regla_activa_principal()
+        puntos_por_sol = regla.puntos_por_sol if regla else Decimal("1")
+        sellos_por_pedido = regla.sellos_por_pedido if regla else 1
+        puntos = math.floor(float(total_pedido * puntos_por_sol))
 
         return self.repo.create_movimiento(
             usuario_id=usuario_id,
             pedido_id=pedido_id,
             tipo_movimiento=TipoMovimientoFidelidad.ACREDITACION_PEDIDO,
             puntos=puntos,
-            sellos=sellos,
+            sellos=sellos_por_pedido,
             descripcion=descripcion or f"Acreditacion por pedido {pedido_id}",
         )
 
@@ -72,4 +113,68 @@ class FidelidadService:
             puntos=payload.puntos,
             sellos=payload.sellos,
             descripcion=payload.descripcion,
+        )
+
+    def canjear_premio(self, usuario_id: UUID, payload: CanjearPremioRequest) -> CanjeResponse:
+        puntos_requeridos = payload.puntos
+        sellos_requeridos = payload.sellos
+
+        if payload.regla_id and puntos_requeridos == 0 and sellos_requeridos == 0:
+            regla = self.repo.get_regla_by_id(payload.regla_id)
+            if regla is None:
+                raise HTTPException(
+                    status_code=status.HTTP_404_NOT_FOUND,
+                    detail="Regla de fidelidad no encontrada.",
+                )
+            puntos_requeridos = regla.puntos_canje_cafe
+            sellos_requeridos = regla.cantidad_criterio or regla.sellos_canje_cafe
+
+        if puntos_requeridos == 0 and sellos_requeridos == 0:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Debe indicar puntos o sellos a canjear.",
+            )
+
+        self._validar_saldo(usuario_id, puntos_requeridos, sellos_requeridos)
+        movimiento = self.repo.create_movimiento(
+            usuario_id=usuario_id,
+            pedido_id=None,
+            tipo_movimiento=TipoMovimientoFidelidad.CANJE,
+            puntos=-puntos_requeridos,
+            sellos=-sellos_requeridos,
+            descripcion=payload.descripcion or "Canje de premio de fidelidad",
+        )
+        return self._build_canje_response(usuario_id, movimiento)
+
+    def canjear_cafe(self, usuario_id: UUID) -> CanjeResponse:
+        regla = self.repo.get_regla_activa_principal()
+        puntos_requeridos = regla.puntos_canje_cafe if regla else 0
+        sellos_requeridos = regla.sellos_canje_cafe if regla else 10
+        self._validar_saldo(usuario_id, puntos_requeridos, sellos_requeridos)
+        movimiento = self.repo.create_movimiento(
+            usuario_id=usuario_id,
+            pedido_id=None,
+            tipo_movimiento=TipoMovimientoFidelidad.CANJE,
+            puntos=-puntos_requeridos,
+            sellos=-sellos_requeridos,
+            descripcion="Canje de cafe gratis",
+        )
+        return self._build_canje_response(usuario_id, movimiento)
+
+    def _validar_saldo(self, usuario_id: UUID, puntos: int, sellos: int) -> None:
+        resumen = self.get_resumen(usuario_id)
+        if resumen.puntos < puntos or resumen.sellos < sellos:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Saldo de fidelidad insuficiente para realizar el canje.",
+            )
+
+    def _build_canje_response(self, usuario_id: UUID, movimiento: FidelidadMovimiento) -> CanjeResponse:
+        resumen = self.get_resumen(usuario_id)
+        return CanjeResponse(
+            usuario_id=usuario_id,
+            puntos=resumen.puntos,
+            sellos=resumen.sellos,
+            cafesGratis=resumen.cafesGratis,
+            movimiento=movimiento,
         )

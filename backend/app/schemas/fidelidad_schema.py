@@ -1,14 +1,15 @@
-﻿from datetime import datetime
+from datetime import datetime
 from decimal import Decimal
 from uuid import UUID
 
-from pydantic import BaseModel, ConfigDict, Field, model_validator
+from pydantic import BaseModel, ConfigDict, Field, AliasChoices, model_validator
 
-from app.models.fidelidad import TipoMovimientoFidelidad
+from app.models.fidelidad import TipoMovimientoFidelidad, TipoReglaFidelidad
 
 _TIPOS_PERMITEN_NEGATIVOS = {
     TipoMovimientoFidelidad.REVERSA,
     TipoMovimientoFidelidad.AJUSTE_ADMIN,
+    TipoMovimientoFidelidad.CANJE,
 }
 
 
@@ -63,8 +64,103 @@ class MovimientoFidelidadRead(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
 
+class PremioDinamicoRead(BaseModel):
+    id: UUID
+    reglaNombre: str
+    cantidadAcumulada: int
+    cantidadCriterio: int
+    premiosDisponibles: int
+    productoPremio: str | None = None
+
+
 class ResumenFidelidad(BaseModel):
     usuario_id: UUID
     puntos: int
     sellos: int
+    sandwiches: int = 0
+    cafesGratis: int = 0
+    premiosDinamicos: list[PremioDinamicoRead] = Field(default_factory=list)
     movimientos: list[MovimientoFidelidadRead]
+
+
+class RankingFidelidadItem(BaseModel):
+    id: UUID
+    nombre: str
+    correo: str
+    codigo: str | None = None
+    puntos: int
+    sellos: int
+    sandwiches: int
+
+
+class FidelidadReglaBase(BaseModel):
+    nombre: str = Field(min_length=1)
+    tipo: TipoReglaFidelidad = TipoReglaFidelidad.PRINCIPAL
+    puntos_por_sol: Decimal = Field(default=Decimal("1.00"), ge=0)
+    sellos_por_pedido: int = Field(default=1, ge=0)
+    puntos_canje_cafe: int = Field(default=0, ge=0)
+    sellos_canje_cafe: int = Field(default=10, ge=0)
+    producto_criterio_id: UUID | None = Field(
+        default=None, validation_alias=AliasChoices("producto_criterio_id", "productoCriterioId")
+    )
+    cantidad_criterio: int | None = Field(
+        default=None, ge=1, validation_alias=AliasChoices("cantidad_criterio", "cantidadCriterio")
+    )
+    producto_premio_id: UUID | None = Field(
+        default=None, validation_alias=AliasChoices("producto_premio_id", "productoPremioId")
+    )
+    activo: bool = True
+
+    model_config = ConfigDict(populate_by_name=True)
+
+
+class FidelidadReglaCreate(FidelidadReglaBase):
+    pass
+
+
+class FidelidadReglaUpdate(BaseModel):
+    nombre: str | None = Field(default=None, min_length=1)
+    tipo: TipoReglaFidelidad | None = None
+    puntos_por_sol: Decimal | None = Field(default=None, ge=0)
+    sellos_por_pedido: int | None = Field(default=None, ge=0)
+    puntos_canje_cafe: int | None = Field(default=None, ge=0)
+    sellos_canje_cafe: int | None = Field(default=None, ge=0)
+    producto_criterio_id: UUID | None = Field(
+        default=None, validation_alias=AliasChoices("producto_criterio_id", "productoCriterioId")
+    )
+    cantidad_criterio: int | None = Field(
+        default=None, ge=1, validation_alias=AliasChoices("cantidad_criterio", "cantidadCriterio")
+    )
+    producto_premio_id: UUID | None = Field(
+        default=None, validation_alias=AliasChoices("producto_premio_id", "productoPremioId")
+    )
+    activo: bool | None = None
+
+    model_config = ConfigDict(populate_by_name=True)
+
+
+class FidelidadReglaRead(FidelidadReglaBase):
+    id: UUID
+    created_at: datetime
+    updated_at: datetime
+
+    model_config = ConfigDict(from_attributes=True, populate_by_name=True)
+
+
+class CanjearPremioRequest(BaseModel):
+    usuario_id: UUID | None = Field(default=None, validation_alias=AliasChoices("usuario_id", "estudianteId"))
+    regla_id: UUID | None = Field(default=None, validation_alias=AliasChoices("regla_id", "progresoId"))
+    puntos: int = Field(default=0, ge=0)
+    sellos: int = Field(default=0, ge=0)
+    descripcion: str | None = None
+
+    model_config = ConfigDict(populate_by_name=True)
+
+
+class CanjeResponse(BaseModel):
+    ok: bool = True
+    usuario_id: UUID
+    puntos: int
+    sellos: int
+    cafesGratis: int = 0
+    movimiento: MovimientoFidelidadRead

@@ -24,9 +24,23 @@ begin
   end if;
 
   if not exists (select 1 from pg_type where typname = 'fidelidad_movimiento_tipo') then
-    create type fidelidad_movimiento_tipo as enum ('ACREDITACION', 'CANJE', 'AJUSTE');
+    create type fidelidad_movimiento_tipo as enum (
+      'ACREDITACION_PEDIDO',
+      'AJUSTE_ADMIN',
+      'CANJE',
+      'REVERSA'
+    );
+  end if;
+
+  if not exists (select 1 from pg_type where typname = 'fidelidad_regla_tipo') then
+    create type fidelidad_regla_tipo as enum ('PRINCIPAL', 'PRODUCTO', 'PROMOCION');
   end if;
 end $$;
+
+alter type fidelidad_movimiento_tipo add value if not exists 'ACREDITACION_PEDIDO';
+alter type fidelidad_movimiento_tipo add value if not exists 'AJUSTE_ADMIN';
+alter type fidelidad_movimiento_tipo add value if not exists 'CANJE';
+alter type fidelidad_movimiento_tipo add value if not exists 'REVERSA';
 
 create table if not exists usuarios (
   id uuid primary key default gen_random_uuid(),
@@ -113,11 +127,64 @@ create table if not exists fidelidad_movimientos (
   id uuid primary key default gen_random_uuid(),
   usuario_id uuid not null references usuarios(id) on delete restrict,
   pedido_id uuid references pedidos(id) on delete set null,
-  tipo fidelidad_movimiento_tipo not null,
-  puntos integer not null,
+  tipo_movimiento fidelidad_movimiento_tipo not null,
+  puntos integer not null default 0,
+  sellos integer not null default 0,
   descripcion text,
   created_at timestamptz not null default now()
 );
+
+do $$
+begin
+  if to_regclass('public.fidelidad_movimientos') is not null then
+    if exists (
+      select 1 from information_schema.columns
+      where table_schema = 'public'
+        and table_name = 'fidelidad_movimientos'
+        and column_name = 'tipo'
+    ) and not exists (
+      select 1 from information_schema.columns
+      where table_schema = 'public'
+        and table_name = 'fidelidad_movimientos'
+        and column_name = 'tipo_movimiento'
+    ) then
+      alter table fidelidad_movimientos rename column tipo to tipo_movimiento;
+    end if;
+
+    alter table fidelidad_movimientos
+      add column if not exists sellos integer not null default 0;
+  end if;
+end $$;
+
+create table if not exists fidelidad_reglas (
+  id uuid primary key default gen_random_uuid(),
+  nombre text not null,
+  tipo fidelidad_regla_tipo not null default 'PRINCIPAL',
+  puntos_por_sol numeric(10, 2) not null default 1 check (puntos_por_sol >= 0),
+  sellos_por_pedido integer not null default 1 check (sellos_por_pedido >= 0),
+  puntos_canje_cafe integer not null default 0 check (puntos_canje_cafe >= 0),
+  sellos_canje_cafe integer not null default 10 check (sellos_canje_cafe >= 0),
+  producto_criterio_id uuid null references productos(id) on delete set null,
+  cantidad_criterio integer null check (cantidad_criterio is null or cantidad_criterio > 0),
+  producto_premio_id uuid null references productos(id) on delete set null,
+  activo boolean not null default true,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now()
+);
+
+create table if not exists categorias (
+  id uuid primary key default gen_random_uuid(),
+  nombre text not null unique,
+  slug text not null unique,
+  descripcion text,
+  activo boolean not null default true,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now()
+);
+
+-- categoria_id is nullable to preserve existing productos rows that use the free-text `categoria` column
+alter table productos
+  add column if not exists categoria_id uuid null references categorias(id) on delete set null;
 
 create index if not exists idx_usuarios_rol on usuarios(rol);
 create index if not exists idx_productos_activo_disponible on productos(activo, disponible);
@@ -126,3 +193,13 @@ create index if not exists idx_pedidos_estado on pedidos(estado);
 create index if not exists idx_items_pedido_pedido_id on items_pedido(pedido_id);
 create index if not exists idx_movimientos_stock_producto_id on movimientos_stock(producto_id);
 create index if not exists idx_fidelidad_movimientos_usuario_id on fidelidad_movimientos(usuario_id);
+create index if not exists idx_fidelidad_movimientos_pedido_id on fidelidad_movimientos(pedido_id);
+create unique index if not exists uq_fidelidad_acreditacion_pedido
+  on fidelidad_movimientos(pedido_id, tipo_movimiento)
+  where pedido_id is not null;
+create unique index if not exists uq_fidelidad_regla_principal_activa
+  on fidelidad_reglas((tipo))
+  where activo is true and tipo = 'PRINCIPAL';
+create index if not exists idx_fidelidad_reglas_activo on fidelidad_reglas(activo);
+create index if not exists idx_categorias_slug on categorias(slug);
+create index if not exists idx_productos_categoria_id on productos(categoria_id);

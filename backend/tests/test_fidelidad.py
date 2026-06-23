@@ -17,6 +17,11 @@ from app.main import app
 from app.models.fidelidad import TipoMovimientoFidelidad
 from app.models.usuario import UsuarioRol
 from app.schemas.fidelidad_schema import MovimientoFidelidadCreate, ResumenFidelidad
+from app.schemas.fidelidad_schema import (
+    CanjearPremioRequest,
+    FidelidadReglaCreate,
+    RankingFidelidadItem,
+)
 
 
 client = TestClient(app)
@@ -63,6 +68,60 @@ class FakeFidelidadService:
             sellos=1,
         )
 
+    def get_ranking(self):
+        return [
+            RankingFidelidadItem(
+                id=self._usuario_id,
+                nombre="Estudiante Test",
+                correo="estudiante@test.local",
+                codigo="T-001",
+                puntos=10,
+                sellos=2,
+                sandwiches=2,
+            )
+        ]
+
+    def list_reglas(self):
+        return []
+
+    def create_regla(self, payload):
+        return SimpleNamespace(
+            id=uuid4(),
+            created_at=datetime.now(timezone.utc),
+            updated_at=datetime.now(timezone.utc),
+            **payload.model_dump(),
+        )
+
+    def canjear_premio(self, usuario_id, payload):
+        return SimpleNamespace(
+            ok=True,
+            usuario_id=usuario_id,
+            puntos=0,
+            sellos=0,
+            cafesGratis=0,
+            movimiento=_make_movimiento_ns(
+                usuario_id=usuario_id,
+                tipo_movimiento=TipoMovimientoFidelidad.CANJE,
+                puntos=-payload.puntos,
+                sellos=-payload.sellos,
+            ),
+        )
+
+    def canjear_cafe(self, usuario_id):
+        return SimpleNamespace(
+            ok=True,
+            usuario_id=usuario_id,
+            puntos=0,
+            sellos=0,
+            cafesGratis=0,
+            movimiento=_make_movimiento_ns(
+                usuario_id=usuario_id,
+                tipo_movimiento=TipoMovimientoFidelidad.CANJE,
+                puntos=0,
+                sellos=-10,
+            ),
+        )
+
 
 def teardown_function():
     app.dependency_overrides.clear()
@@ -103,6 +162,18 @@ class FakeFidelidadRepo:
         )
         self._movimientos.append(m)
         return m
+
+    def get_regla_activa_principal(self):
+        return SimpleNamespace(puntos_por_sol=Decimal("1"), sellos_por_pedido=1, puntos_canje_cafe=0, sellos_canje_cafe=10)
+
+    def get_regla_by_id(self, regla_id):
+        return None
+
+    def get_ranking(self):
+        return []
+
+    def list_reglas(self):
+        return []
 
 
 # ---------------------------------------------------------------------------
@@ -299,3 +370,104 @@ def test_schema_permite_puntos_negativos_en_reversa():
     )
     assert m.puntos == -10
     assert m.sellos == -1
+
+
+def test_ranking_devuelve_lista_y_no_expone_password():
+    usuario_id = uuid4()
+    app.dependency_overrides[get_current_user] = lambda: SimpleNamespace(
+        id=usuario_id, rol=UsuarioRol.ADMIN, activo=True
+    )
+    app.dependency_overrides[get_fidelidad_service] = lambda: FakeFidelidadService(usuario_id)
+
+    response = client.get("/api/v1/fidelidad/ranking")
+
+    assert response.status_code == 200
+    data = response.json()
+    assert isinstance(data, list)
+    assert "hashed_password" not in data[0]
+
+
+def test_reglas_devuelve_lista():
+    app.dependency_overrides[get_current_user] = lambda: SimpleNamespace(
+        id=uuid4(), rol=UsuarioRol.ADMIN, activo=True
+    )
+    app.dependency_overrides[get_fidelidad_service] = lambda: FakeFidelidadService()
+
+    response = client.get("/api/v1/fidelidad/reglas")
+
+    assert response.status_code == 200
+    assert response.json() == []
+
+
+def test_crear_regla_rechaza_valores_negativos_invalidos():
+    app.dependency_overrides[get_current_user] = lambda: SimpleNamespace(
+        id=uuid4(), rol=UsuarioRol.ADMIN, activo=True
+    )
+    app.dependency_overrides[get_fidelidad_service] = lambda: FakeFidelidadService()
+
+    response = client.post(
+        "/api/v1/fidelidad/reglas",
+        json={
+            "nombre": "Regla invalida",
+            "puntos_por_sol": "-1.00",
+            "sellos_por_pedido": 1,
+            "puntos_canje_cafe": 0,
+            "sellos_canje_cafe": 10,
+        },
+    )
+
+    assert response.status_code == 422
+
+
+def test_canjear_premio_rechaza_saldo_insuficiente():
+    from fastapi import HTTPException
+    from app.services.fidelidad_service import FidelidadService
+
+    usuario_id = uuid4()
+    service = FidelidadService(FakeFidelidadRepo())
+
+    with pytest.raises(HTTPException) as exc:
+        service.canjear_premio(
+            usuario_id,
+            CanjearPremioRequest(usuario_id=usuario_id, puntos=1, sellos=0),
+        )
+
+    assert exc.value.status_code == 400
+
+
+def test_canjear_cafe_rechaza_sellos_insuficientes():
+    from fastapi import HTTPException
+    from app.services.fidelidad_service import FidelidadService
+
+    usuario_id = uuid4()
+    service = FidelidadService(FakeFidelidadRepo())
+
+    with pytest.raises(HTTPException) as exc:
+        service.canjear_cafe(usuario_id)
+
+    assert exc.value.status_code == 400
+
+
+def test_canje_registra_movimiento_tipo_canje():
+    from app.services.fidelidad_service import FidelidadService
+
+    usuario_id = uuid4()
+    repo = FakeFidelidadRepo()
+    repo.create_movimiento(
+        usuario_id=usuario_id,
+        pedido_id=None,
+        tipo_movimiento=TipoMovimientoFidelidad.AJUSTE_ADMIN,
+        puntos=20,
+        sellos=5,
+        descripcion="saldo inicial test",
+    )
+    service = FidelidadService(repo)
+
+    response = service.canjear_premio(
+        usuario_id,
+        CanjearPremioRequest(usuario_id=usuario_id, puntos=10, sellos=2),
+    )
+
+    assert response.movimiento.tipo_movimiento == TipoMovimientoFidelidad.CANJE
+    assert response.movimiento.puntos == -10
+    assert response.movimiento.sellos == -2
