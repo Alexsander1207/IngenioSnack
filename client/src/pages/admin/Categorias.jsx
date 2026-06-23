@@ -1,3 +1,4 @@
+import { apiFetch } from '../../services/apiClient';
 import { useState, useEffect } from 'react';
 import { Plus, Trash2, FolderOpen } from 'lucide-react';
 import { useToast } from '../../components/Toast';
@@ -9,10 +10,10 @@ export default function Categorias() {
   const { toast } = useToast();
 
   const loadCategorias = () => {
-    fetch('/api/categorias')
+    apiFetch('/api/categorias')
       .then(r => r.json())
       .then(data => {
-        setCategorias(data);
+        setCategorias(Array.isArray(data) ? data : []);
         setLoading(false);
       })
       .catch(() => {
@@ -30,7 +31,7 @@ export default function Categorias() {
     if (!nombre.trim()) return;
 
     try {
-      const res = await fetch('/api/categorias', {
+      const res = await apiFetch('/api/categorias', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ nombre: nombre.trim() })
@@ -54,7 +55,7 @@ export default function Categorias() {
     }
 
     try {
-      const res = await fetch(`/api/categorias/${id}`, {
+      const res = await apiFetch(`/api/categorias/${id}`, {
         method: 'DELETE'
       });
       if (res.ok) {

@@ -1,3 +1,4 @@
+import { apiFetch } from '../../services/apiClient';
 import { useState, useEffect } from 'react';
 import { TrendingUp, DollarSign, ShoppingBag, Users, Package, BarChart3, AlertCircle, Calendar, PieChart, Percent } from 'lucide-react';
 import { useToast } from '../../components/Toast';
@@ -11,12 +12,17 @@ export default function Reporte() {
 
   useEffect(() => {
     Promise.all([
-      fetch('/api/reporte').then(r => r.json()),
-      fetch('/api/pedidos').then(r => r.json()),
+      apiFetch('/api/reporte').then(r => r.json()),
+      apiFetch('/api/pedidos').then(r => r.json()),
     ])
       .then(([reporteData, pedidosData]) => {
-        setData(reporteData);
-        setPedidos(pedidosData);
+        setData(reporteData ?? {});
+        setPedidos(Array.isArray(pedidosData) ? pedidosData.map(p => ({
+          ...p,
+          estado: p.estado === 'PREPARANDO' ? 'EN_PREPARACION' : p.estado,
+          fecha: p.fecha || p.created_at,
+          total: Number(p.total || 0),
+        })) : []);
         setLoading(false);
       })
       .catch(() => {
@@ -33,7 +39,7 @@ export default function Reporte() {
     );
   }
 
-  const { estadisticas: s, masVendidos } = data;
+  const { estadisticas: s = {}, masVendidos = [] } = data ?? {};
 
   // Cálculos de KPIs Recomendados
   const totalPedidos = pedidos.length;

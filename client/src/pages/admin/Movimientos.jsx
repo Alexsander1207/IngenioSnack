@@ -1,3 +1,4 @@
+import { apiFetch } from '../../services/apiClient';
 import { useState, useEffect } from 'react';
 import { useToast } from '../../components/Toast';
 import { ArrowUpRight, ArrowDownLeft, Calendar, Tag, Info } from 'lucide-react';
@@ -12,8 +13,8 @@ export default function Movimientos() {
   const loadData = async () => {
     try {
       const [movRes, catRes] = await Promise.all([
-        fetch('/api/productos/movimientos'),
-        fetch('/api/categorias')
+        apiFetch('/api/productos/movimientos'),
+        apiFetch('/api/categorias')
       ]);
       const movs = await movRes.json();
       const cats = await catRes.json();

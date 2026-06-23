@@ -1,3 +1,4 @@
+import { apiFetch, setToken } from '../services/apiClient';
 import { useState } from 'react';
 import { Coffee, GraduationCap, Clock, Award, Sparkles, ShieldCheck } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
@@ -27,14 +28,33 @@ export default function Login() {
     }
     setLoading(true);
     try {
-      const res = await fetch('/api/auth/login', {
+      const res = await apiFetch('/api/auth/login', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ correo: correo.trim(), password })
       });
       const data = await res.json();
-      if (data.error) {
-        toast(data.error, 'error');
+      if (!res.ok || data.error || data.detail) {
+        toast(data.error || data.detail || 'No se pudo iniciar sesion', 'error');
+        return;
+      }
+      if (data.access_token) {
+        setToken(data.access_token);
+        const meRes = await apiFetch('/api/auth/me');
+        const me = meRes.ok ? await meRes.json() : null;
+        if (!me) {
+          toast('No se pudo obtener el perfil del usuario.', 'error');
+          return;
+        }
+        if (me.rol === 'ADMIN') {
+          toast('Acceso concedido al panel administrativo.', 'success');
+          login({ ...me, rol: 'vendedor' });
+          navigate('/admin/panel');
+        } else {
+          toast(`Bienvenido de vuelta, ${me.nombre}!`, 'success');
+          login({ ...me, rol: 'estudiante' });
+          navigate('/estudiante/menu');
+        }
         return;
       }
       if (data.ok) {
@@ -77,19 +97,27 @@ export default function Login() {
 
     setLoading(true);
     try {
-      const res = await fetch('/api/auth/register', {
+      const res = await apiFetch('/api/auth/register', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           nombre: nombre.trim(),
           correo: correoNormalizado,
           password,
+          codigo_estudiante: correoNormalizado.split('@')[0].toUpperCase(),
           confirmPassword
         })
       });
       const data = await res.json();
-      if (data.error) {
-        toast(data.error, 'error');
+      if (!res.ok || data.error || data.detail) {
+        toast(data.error || data.detail || 'Error al registrar usuario', 'error');
+        return;
+      }
+      if (data.id) {
+        toast('Registro exitoso. Inicia sesion con tus credenciales.', 'success');
+        setIsRegistering(false);
+        setPassword('');
+        setConfirmPassword('');
         return;
       }
       if (data.ok) {

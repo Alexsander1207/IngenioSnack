@@ -1,3 +1,4 @@
+import { apiFetch } from '../../services/apiClient';
 import { useState, useEffect } from 'react';
 import { User, Mail, Star, Coffee, Gift, CheckCircle, Circle, LogOut } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
@@ -12,11 +13,21 @@ export default function Profile() {
   const { toast } = useToast();
 
   const fetchProfile = () => {
-    fetch(`/api/estudiante/${user.id}`)
-      .then(r => r.json())
-      .then(d => {
-        if (d.error) toast(d.error, 'error');
-        else setData(d);
+    Promise.all([
+      apiFetch('/api/auth/me').then(r => r.ok ? r.json() : null).catch(() => null),
+      apiFetch('/api/fidelidad/me').then(r => r.ok ? r.json() : null).catch(() => null),
+    ])
+      .then(([profile, fidelidad]) => {
+        const beneficios = fidelidad?.beneficios || fidelidad || {};
+        setData({
+          ...(profile || user || {}),
+          beneficios: {
+            puntos: beneficios.puntos || 0,
+            sandwiches: beneficios.sandwiches || 0,
+            cafesGratis: beneficios.cafesGratis || beneficios.cafes_gratis || 0,
+            premiosDinamicos: Array.isArray(beneficios.premiosDinamicos) ? beneficios.premiosDinamicos : [],
+          },
+        });
         setLoading(false);
       })
       .catch(() => { toast('Error al cargar perfil', 'error'); setLoading(false); });
@@ -26,7 +37,7 @@ export default function Profile() {
 
   const canjearCafe = async () => {
     try {
-      const res = await fetch(`/api/estudiante/${user.id}/canjear-cafe`, { method: 'POST' });
+      const res = await apiFetch(`/api/estudiante/${user.id}/canjear-cafe`, { method: 'POST' });
       const d = await res.json();
       if (d.error) { toast(d.error, 'error'); return; }
       toast('☕ ¡Café canjeado! Disfrútalo.', 'success');
@@ -38,7 +49,7 @@ export default function Profile() {
 
   const canjearPremioDinamico = async (progresoId, premioNombre) => {
     try {
-      const res = await fetch(`/api/fidelidad/canjear-premio`, {
+      const res = await apiFetch(`/api/fidelidad/canjear-premio`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ estudianteId: user.id, progresoId })

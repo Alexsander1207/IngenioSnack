@@ -1,3 +1,4 @@
+import { apiFetch } from '../../services/apiClient';
 import { useState, useEffect } from 'react';
 import { useAppContext } from '../../context/AppContext';
 import { useToast } from '../../components/Toast';
@@ -10,14 +11,27 @@ export default function MyOrders() {
   const [selectedOrderId, setSelectedOrderId] = useState(null);
   const { toast } = useToast();
 
+  const normalizeOrder = (pedido) => ({
+    ...pedido,
+    fecha: pedido.fecha || pedido.created_at,
+    items: Array.isArray(pedido.items)
+      ? pedido.items.map((item) => ({
+          ...item,
+          producto: item.producto || { nombre: item.nombre_producto || 'Producto' },
+        }))
+      : [],
+    total: Number(pedido.total || 0),
+  });
+
   const loadPedidos = () => {
-    fetch(`/api/estudiante/${user.id}`)
+    apiFetch('/api/pedidos/mis-pedidos')
       .then(r => r.json())
       .then(data => {
         if (data.error) {
           toast(data.error, 'error');
         } else {
-          setPedidos(data.pedidos || []);
+          const list = Array.isArray(data) ? data : (Array.isArray(data.pedidos) ? data.pedidos : []);
+          setPedidos(list.map(normalizeOrder));
         }
         setLoading(false);
       })
@@ -45,13 +59,13 @@ export default function MyOrders() {
     if (!activeOrderId) return;
 
     const interval = setInterval(() => {
-      fetch(`/api/pedidos/${activeOrderId}`)
+      apiFetch(`/api/pedidos/${activeOrderId}`)
         .then(r => r.json())
         .then(updatedOrder => {
           if (updatedOrder && !updatedOrder.error) {
             // Update the orders state with the polled data
             setPedidos(prev =>
-              prev.map(p => (p.id === updatedOrder.id ? updatedOrder : p))
+              prev.map(p => (p.id === updatedOrder.id ? normalizeOrder(updatedOrder) : p))
             );
           }
         })

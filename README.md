@@ -20,32 +20,77 @@ los recogen rapidamente y pagan contra entrega, eliminando las filas y la perdid
 
 | Tecnologia            | Uso                                                       |
 |-----------------------|-----------------------------------------------------------|
-| Node.js               | Logica de negocio (servicios y modelos)                   |
-| Jest                  | Pruebas unitarias (TDD)                                   |
-| Supabase (PostgreSQL) | Base de datos en la nube para productos (Sprint 1+)       |
-| @supabase/supabase-js | Cliente oficial para conectar con Supabase                |
-| dotenv                | Carga de variables de entorno desde `.env`                |
+| FastAPI (Python)      | Backend principal — API REST con auth JWT y roles         |
+| SQLAlchemy 2.x        | ORM para PostgreSQL/Supabase                              |
+| React + Vite          | Frontend SPA                                             |
+| Supabase (PostgreSQL) | Base de datos en la nube                                  |
+| pytest                | Pruebas del backend FastAPI (sin DB real en tests)        |
+| Node.js / Jest        | Backend legacy (conservado en `legacy/express-backend/`)  |
+
+---
+
+## Arquitectura actual
+
+```
+IngenioSnack/
+├── backend/          # FastAPI — backend principal
+├── client/           # React + Vite — frontend SPA
+├── database/         # Schema SQL para Supabase/PostgreSQL
+├── uploads/          # Imagenes de productos subidas
+├── docs/             # Documentacion del proyecto
+└── legacy/
+    └── express-backend/  # Backend Node.js/Express (retirado)
+        ├── server.js
+        ├── src/
+        └── tests/
+```
+
+---
+
+## Levantar el entorno de desarrollo
+
+### Backend (FastAPI)
+
+```bash
+cd backend
+python -m venv .venv
+.venv\Scripts\Activate.ps1   # Windows PowerShell
+pip install -r requirements.txt
+uvicorn app.main:app --reload
+# Disponible en http://localhost:8000
+# Swagger UI en http://localhost:8000/docs
+```
+
+### Frontend (React)
+
+```bash
+cd client
+npm install
+npm run dev
+# Disponible en http://localhost:5173
+# El proxy de Vite redirige /api → http://localhost:8000
+```
+
+### Tests del backend
+
+```bash
+cd backend
+python -m pytest
+```
 
 ---
 
 ## Conexion con Supabase
 
-El sistema usa Supabase (PostgreSQL gestionado) para persistir el menu de productos.
+Configurar variables de entorno en `backend/.env` (copiar desde `backend/.env.example`):
 
-1. Copia `.env.example` como `.env` y completa tus credenciales:
+```env
+DATABASE_URL=postgresql+psycopg://USER:PASSWORD@HOST:PORT/DATABASE
+SECRET_KEY=change_me_in_production
+```
 
-   ```bash
-   SUPABASE_URL=https://TU-PROYECTO.supabase.co
-   SUPABASE_ANON_KEY=tu_clave_publishable_o_anon
-   ```
-
-2. El cliente esta en `src/config/supabaseClient.js` y la logica de productos en
-   `src/services/productoService.js`.
-3. El esquema de la base de datos esta documentado en
-   `docs/Sprint_1/SUPABASE_SCHEMA.md`.
-
-> Nota: el archivo `.env` esta en `.gitignore` y **no** se sube al repositorio.
-> Las pruebas no requieren conexion real: el cliente de Supabase se mockea en los tests.
+> El archivo `.env` esta en `.gitignore` y **no** se sube al repositorio.
+> Los tests no requieren conexion real: usan SQLite en memoria.
 
 ---
 
@@ -83,42 +128,24 @@ El sistema usa Supabase (PostgreSQL gestionado) para persistir el menu de produc
 
 ```text
 IngenioSnack/
-├── src/
-│   ├── models/
-│   │   ├── Producto.js          - id, nombre, precio, categoria, disponible
-│   │   ├── Estudiante.js        - id, nombre, codigo, correo, puntos, sandwiches, cafesGratis
-│   │   ├── Pedido.js            - id, estudianteId, items, estado, fecha, total (getter)
-│   │   └── ItemPedido.js        - producto, cantidad, subtotal (getter)
-│   ├── config/
-│   │   └── supabaseClient.js    - conexion con Supabase (Sprint 1)
-│   ├── services/
-│   │   ├── menuService.js       - HU-02, HU-05: registrar, listar, cambiar disponibilidad
-│   │   ├── productoService.js   - gestion de productos en Supabase (Sprint 1)
-│   │   ├── pedidoService.js     - HU-03, HU-04, HU-06: crear, validar, confirmar, entregar
-│   │   └── fidelidadService.js  - HU-07: puntos, sandwiches, cafes gratis
-│   ├── data/
-│   │   └── memoria.js           - almacenamiento en memoria para el MVP
-│   └── app.js                   - flujo MVP completo (demo ejecutable)
-├── tests/
-│   ├── menuService.test.js      - 5 tests: HU-02, HU-05
-│   ├── productoService.test.js  - 10 tests: productos en Supabase (mockeado)
-│   ├── pedidoService.test.js    - 12 tests: HU-03, HU-04, HU-06
-│   └── fidelidadService.test.js - 5 tests: HU-07
-├── docs/
-│   ├── Sprint_1/
-│   │   ├── SUPABASE_SCHEMA.md
-│   │   └── BITACORA_SPRINT_1.md
-│   └── Semana_10/
-│       ├── PLAN_SPRINT_MVP_5_DIAS.md
-│       ├── BITACORA_PAIR_PROGRAMMING.md  (7 sesiones documentadas)
-│       ├── REFACTORIZACION.md            (4 refactors con antes/despues)
-│       └── EVIDENCIAS_TDD/
-│           ├── 01_red_test_fallando.png
-│           ├── 02_green_test_pasando.png
-│           └── 03_refactor_codigo_limpio.png
-├── .env.example                 - plantilla de variables de entorno
+├── backend/              - FastAPI — backend principal
+│   ├── app/
+│   │   ├── api/v1/       - endpoints por modulo
+│   │   ├── core/         - config, database, security
+│   │   ├── models/       - ORM SQLAlchemy
+│   │   ├── repositories/ - acceso a datos
+│   │   ├── schemas/      - Pydantic schemas
+│   │   └── services/     - logica de negocio
+│   └── tests/            - pytest (sin DB real)
+├── client/               - React + Vite — frontend SPA
+│   └── src/services/     - apiClient.js (adapter Express→FastAPI)
+├── database/             - Schema SQL para Supabase/PostgreSQL
+├── uploads/              - Imagenes de productos
+├── docs/                 - Documentacion del proyecto
+├── legacy/
+│   └── express-backend/  - Backend Node.js/Express retirado
 ├── package.json
-└── .gitignore
+└── README.md
 ```
 
 ---
@@ -136,20 +163,17 @@ IngenioSnack/
 ## Comandos de ejecucion
 
 ```bash
-# Instalar dependencias
-npm install
+# Backend FastAPI
+cd backend && uvicorn app.main:app --reload
 
-# Ejecutar el MVP completo (flujo demo)
-npm start
+# Frontend React
+cd client && npm run dev
 
-# Ejecutar todas las pruebas
-npm test
+# Tests del backend
+cd backend && python -m pytest
 
-# Pruebas en modo watch (desarrollo)
-npm run test:watch
-
-# Cobertura de pruebas
-npm run test:coverage
+# Tests legacy (Express/Jest — conservados para referencia historica)
+cd legacy/express-backend && npm test
 ```
 
 ---

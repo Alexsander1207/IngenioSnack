@@ -1,3 +1,4 @@
+import { apiFetch } from '../../services/apiClient';
 import { useState, useEffect } from 'react';
 import {
   Receipt,
@@ -28,20 +29,26 @@ export default function Panel() {
 
   useEffect(() => {
     Promise.all([
-      fetch('/api/reporte').then(r => r.json()),
-      fetch('/api/pedidos').then(r => r.json())
+      apiFetch('/api/reporte').then(r => r.json()),
+      apiFetch('/api/pedidos').then(r => r.json())
     ])
       .then(([rep, pedidos]) => {
-        const s = rep.estadisticas;
-        const masVendidos = rep.masVendidos || [];
-        const pend = pedidos.filter(p => p.estado === 'PENDIENTE').length;
-        const activosList = pedidos.filter(p => !['RECOGIDO', 'CANCELADO'].includes(p.estado));
+        const pedidosList = Array.isArray(pedidos) ? pedidos.map(p => ({
+          ...p,
+          estado: p.estado === 'PREPARANDO' ? 'EN_PREPARACION' : p.estado,
+          fecha: p.fecha || p.created_at,
+          total: Number(p.total || 0),
+        })) : [];
+        const s = rep?.estadisticas || {};
+        const masVendidos = Array.isArray(rep?.masVendidos) ? rep.masVendidos : [];
+        const pend = pedidosList.filter(p => p.estado === 'PENDIENTE').length;
+        const activosList = pedidosList.filter(p => !['RECOGIDO', 'CANCELADO'].includes(p.estado));
         setData({
           s,
           pend,
           activos: activosList.length,
           activosList,
-          pedidos,
+          pedidos: pedidosList,
           masVendidos
         });
         setLoading(false);

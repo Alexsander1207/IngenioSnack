@@ -1,3 +1,4 @@
+import { apiFetch } from '../../services/apiClient';
 import { useState, useEffect } from 'react';
 import { useToast } from '../../components/Toast';
 import { ClipboardList, Clock, CheckCircle2, Ban, Play, Check, CheckSquare, User } from 'lucide-react';
@@ -8,11 +9,25 @@ export default function Pedidos() {
   const [loading, setLoading] = useState(true);
   const { toast } = useToast();
 
+  const normalizePedido = (pedido) => ({
+    ...pedido,
+    estado: pedido.estado === 'PREPARANDO' ? 'EN_PREPARACION' : pedido.estado,
+    fecha: pedido.fecha || pedido.created_at,
+    nombreEstudiante: pedido.nombreEstudiante || pedido.usuario?.nombre || pedido.usuario_id || 'Estudiante',
+    total: Number(pedido.total || 0),
+    items: Array.isArray(pedido.items)
+      ? pedido.items.map((item) => ({
+          ...item,
+          producto: item.producto || { nombre: item.nombre_producto || 'Producto' },
+        }))
+      : [],
+  });
+
   const loadPedidos = () => {
-    fetch('/api/pedidos')
+    apiFetch('/api/pedidos')
       .then(r => r.json())
       .then(data => {
-        setPedidos(data);
+        setPedidos(Array.isArray(data) ? data.map(normalizePedido) : []);
         setLoading(false);
       })
       .catch(err => {
@@ -31,7 +46,7 @@ export default function Pedidos() {
       loadPedidos();
     }, 5000);
     
-    fetch('/api/config/supabase')
+    apiFetch('/api/config/supabase')
       .then(r => r.json())
       .then(cfg => {
         if (cfg.supabaseUrl && cfg.supabaseKey) {
@@ -58,7 +73,7 @@ export default function Pedidos() {
 
   const cambiarEstado = async (id, estado) => {
     try {
-      const res = await fetch(`/api/pedidos/${id}/estado`, {
+      const res = await apiFetch(`/api/pedidos/${id}/estado`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ estado })

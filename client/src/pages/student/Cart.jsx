@@ -1,3 +1,4 @@
+import { apiFetch } from '../../services/apiClient';
 import { useState } from 'react';
 import { ShoppingBasket, Wallet, Gift } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
@@ -26,7 +27,7 @@ export default function Cart() {
         }
         return { productoId: c.producto.id, cantidad: c.cantidad };
       });
-      const res = await fetch('/api/pedidos', {
+      const res = await apiFetch('/api/pedidos', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ estudianteId: user.id, lineas })

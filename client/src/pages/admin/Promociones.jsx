@@ -1,3 +1,4 @@
+import { apiFetch } from '../../services/apiClient';
 import { useState, useEffect, useRef } from 'react';
 import { Gift, Trash2, Check, Slash, Plus, Minus, ImageIcon, X } from 'lucide-react';
 import { useToast } from '../../components/Toast';
@@ -19,23 +20,23 @@ export default function Promociones() {
   const { toast } = useToast();
 
   const loadPromociones = () => {
-    fetch('/api/promociones')
+    apiFetch('/api/promociones')
       .then(r => r.json())
-      .then(data => { setPromociones(data); setLoading(false); })
+      .then(data => { setPromociones(Array.isArray(data) ? data : []); setLoading(false); })
       .catch(() => { toast('Error al cargar promociones', 'error'); setLoading(false); });
   };
 
   const loadProductos = () => {
-    fetch('/api/productos')
+    apiFetch('/api/productos')
       .then(r => r.json())
-      .then(data => setProductos(data))
+      .then(data => setProductos(Array.isArray(data) ? data : []))
       .catch(() => toast('Error al cargar productos', 'error'));
   };
 
   const loadCategorias = () => {
-    fetch('/api/categorias')
+    apiFetch('/api/categorias')
       .then(r => r.json())
-      .then(data => setCategorias(data))
+      .then(data => setCategorias(Array.isArray(data) ? data : []))
       .catch(() => {});
   };
 
@@ -110,7 +111,7 @@ export default function Promociones() {
       }))));
       if (form.imagen) formData.append('imagen', form.imagen);
 
-      const res = await fetch('/api/promociones', {
+      const res = await apiFetch('/api/promociones', {
         method: 'POST',
         body: formData,
       });
@@ -132,7 +133,7 @@ export default function Promociones() {
 
   const toggleDisponibilidad = async (promo) => {
     try {
-      const res = await fetch(`/api/promociones/${promo.id}`, {
+      const res = await apiFetch(`/api/promociones/${promo.id}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ disponible: !promo.disponible }),
@@ -149,7 +150,7 @@ export default function Promociones() {
   const eliminarPromo = async (id) => {
     if (!confirm('¿Estás seguro de eliminar este combo?')) return;
     try {
-      const res = await fetch(`/api/promociones/${id}`, { method: 'DELETE' });
+      const res = await apiFetch(`/api/promociones/${id}`, { method: 'DELETE' });
       if (res.ok) {
         toast('Combo eliminado', 'success');
         loadPromociones();

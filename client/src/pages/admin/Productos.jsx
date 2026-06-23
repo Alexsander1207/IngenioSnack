@@ -1,3 +1,4 @@
+import { apiFetch } from '../../services/apiClient';
 import { useState, useEffect, useRef } from 'react';
 import { Slash, Check, ImageIcon, X, Plus, Minus, Trash2, LayoutGrid, List } from 'lucide-react';
 import { useToast } from '../../components/Toast';
@@ -31,8 +32,8 @@ export default function Productos() {
   const loadData = async () => {
     try {
       const [prodRes, catRes] = await Promise.all([
-        fetch('/api/productos'),
-        fetch('/api/categorias')
+        apiFetch('/api/productos'),
+        apiFetch('/api/categorias')
       ]);
       
       const prods = await prodRes.json();
@@ -92,7 +93,7 @@ export default function Productos() {
       if (form.stock) formData.append('stock', form.stock);
       if (form.imagen) formData.append('imagen', form.imagen);
 
-      const res = await fetch('/api/productos', { method: 'POST', body: formData });
+      const res = await apiFetch('/api/productos', { method: 'POST', body: formData });
       const data = await res.json();
       
       if (data.error) {
@@ -113,7 +114,7 @@ export default function Productos() {
       setPreview(null);
       
       // Reload products
-      const pRes = await fetch('/api/productos');
+      const pRes = await apiFetch('/api/productos');
       const prods = await pRes.json();
       setProductos(prods);
     } catch (err) {
@@ -130,7 +131,7 @@ export default function Productos() {
 
   const confirmarDesactivar = async () => {
     try {
-      const res = await fetch(`/api/productos/${razonModal.id}`, {
+      const res = await apiFetch(`/api/productos/${razonModal.id}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ disponible: false, razon: razon.trim() || 'Sin stock' })
@@ -140,7 +141,7 @@ export default function Productos() {
         setRazonModal(null);
         
         // Reload products
-        const pRes = await fetch('/api/productos');
+        const pRes = await apiFetch('/api/productos');
         const prods = await pRes.json();
         setProductos(prods);
       } else {
@@ -154,7 +155,7 @@ export default function Productos() {
 
   const activarProd = async (id) => {
     try {
-      const res = await fetch(`/api/productos/${id}`, {
+      const res = await apiFetch(`/api/productos/${id}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ disponible: true })
@@ -163,7 +164,7 @@ export default function Productos() {
         toast('Producto activado', 'success');
         
         // Reload products
-        const pRes = await fetch('/api/productos');
+        const pRes = await apiFetch('/api/productos');
         const prods = await pRes.json();
         setProductos(prods);
       }
@@ -178,13 +179,13 @@ export default function Productos() {
     }
     
     try {
-      const res = await fetch(`/api/productos/${id}`, {
+      const res = await apiFetch(`/api/productos/${id}`, {
         method: 'DELETE'
       });
       if (res.ok) {
         toast('Producto eliminado correctamente', 'success');
         // Reload products
-        const pRes = await fetch('/api/productos');
+        const pRes = await apiFetch('/api/productos');
         const prods = await pRes.json();
         setProductos(prods);
       } else {
@@ -199,7 +200,7 @@ export default function Productos() {
   const handleStockAdjust = async (id, currentStock, difference) => {
     const newStock = Math.max(0, currentStock + difference);
     try {
-      const res = await fetch(`/api/productos/${id}`, {
+      const res = await apiFetch(`/api/productos/${id}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ stock: newStock })
@@ -207,7 +208,7 @@ export default function Productos() {
       if (res.ok) {
         toast(`Stock actualizado a ${newStock}`, 'success');
         // Reload products
-        const pRes = await fetch('/api/productos');
+        const pRes = await apiFetch('/api/productos');
         const prods = await pRes.json();
         setProductos(prods);
       } else {
@@ -225,19 +226,19 @@ export default function Productos() {
     }
 
     try {
-      const res = await fetch(`/api/categorias/${id}`, {
+      const res = await apiFetch(`/api/categorias/${id}`, {
         method: 'DELETE'
       });
       if (res.ok) {
         toast('Categoría eliminada correctamente', 'success');
         
         // Reload categories list
-        const r = await fetch('/api/categorias');
+        const r = await apiFetch('/api/categorias');
         const cats = await r.json();
         setCategorias(cats);
         
         // Reload products just in case category names/ids changed
-        const pRes = await fetch('/api/productos');
+        const pRes = await apiFetch('/api/productos');
         const prods = await pRes.json();
         setProductos(prods);
 
@@ -268,7 +269,7 @@ export default function Productos() {
     e.preventDefault();
     if (!newCatName.trim()) return;
     try {
-      const res = await fetch('/api/categorias', {
+      const res = await apiFetch('/api/categorias', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ nombre: newCatName.trim() })
@@ -284,7 +285,7 @@ export default function Productos() {
       setShowCatModal(false);
       
       // Reload categories list
-      const r = await fetch('/api/categorias');
+      const r = await apiFetch('/api/categorias');
       const cats = await r.json();
       setCategorias(cats);
       

@@ -1,3 +1,4 @@
+import { apiFetch } from '../../services/apiClient';
 import { useState, useEffect } from 'react';
 import { CupSoda, Cookie, Pizza } from 'lucide-react';
 import { useToast } from '../../components/Toast';
@@ -14,10 +15,10 @@ export default function Inventario() {
   const { toast } = useToast();
 
   const loadProductos = () => {
-    fetch('/api/productos')
+    apiFetch('/api/productos')
       .then(r => r.json())
       .then(data => {
-        setProductos(data);
+        setProductos(Array.isArray(data) ? data : []);
         setLoading(false);
       })
       .catch(err => {
@@ -49,7 +50,7 @@ export default function Inventario() {
   const updateStock = async (id, newStock) => {
     if (newStock < 0) return;
     try {
-      const res = await fetch(`/api/productos/${id}`, {
+      const res = await apiFetch(`/api/productos/${id}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ stock: newStock })

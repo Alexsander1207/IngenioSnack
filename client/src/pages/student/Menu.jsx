@@ -1,3 +1,4 @@
+import { apiFetch } from '../../services/apiClient';
 import { useState, useEffect } from 'react';
 import { Pizza, CupSoda, Cookie, ShoppingCart, Search, Gift, Star } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
@@ -29,12 +30,12 @@ export default function Menu() {
 
   useEffect(() => {
     Promise.all([
-      fetch('/api/productos').then(r => r.json()),
-      fetch('/api/promociones').then(r => r.json()).catch(() => []),
-      fetch('/api/categorias').then(r => r.json()).catch(() => []),
+      apiFetch('/api/productos').then(r => r.json()),
+      apiFetch('/api/promociones').then(r => r.json()).catch(() => []),
+      apiFetch('/api/categorias').then(r => r.json()).catch(() => []),
     ])
       .then(([prodData, promoData, catData]) => {
-        setProductos(prodData);
+        setProductos(Array.isArray(prodData) ? prodData : []);
         setPromociones(Array.isArray(promoData) ? promoData.filter(p => p.disponible) : []);
         setCategorias(Array.isArray(catData) ? catData : []);
         setLoading(false);
@@ -51,8 +52,8 @@ export default function Menu() {
 
   const filteredProducts = productos.filter(p => {
     const matchesCategory = selectedCategory === 'Todos' || p.categoria === selectedCategory;
-    const matchesSearch = p.nombre.toLowerCase().includes(searchQuery.toLowerCase()) || 
-                          p.categoria.toLowerCase().includes(searchQuery.toLowerCase());
+    const matchesSearch = (p.nombre || '').toLowerCase().includes(searchQuery.toLowerCase()) || 
+                          (p.categoria || '').toLowerCase().includes(searchQuery.toLowerCase());
     return matchesCategory && matchesSearch;
   });
 

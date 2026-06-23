@@ -1,4 +1,5 @@
 import { createContext, useContext, useState, useEffect } from 'react';
+import { clearToken } from '../services/apiClient';
 
 const AppContext = createContext();
 
@@ -28,6 +29,7 @@ export const AppProvider = ({ children }) => {
 
   const login = (userData) => setUser(userData);
   const logout = () => {
+    clearToken();
     setUser(null);
     setCart([]);
     setConfirmedOrder(null);

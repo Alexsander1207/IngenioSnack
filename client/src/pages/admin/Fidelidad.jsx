@@ -1,3 +1,4 @@
+import { apiFetch } from '../../services/apiClient';
 import { useState, useEffect } from 'react';
 import { Award, Plus, Trophy, Check } from 'lucide-react';
 import { useToast } from '../../components/Toast';
@@ -18,18 +19,21 @@ export default function Fidelidad() {
 
   const loadData = () => {
     Promise.all([
-      fetch('/api/fidelidad/ranking').then(r => r.json()),
-      fetch('/api/fidelidad/reglas').then(r => r.json()),
-      fetch('/api/productos').then(r => r.json())
+      apiFetch('/api/fidelidad/ranking').then(r => r.json()),
+      apiFetch('/api/fidelidad/reglas').then(r => r.json()),
+      apiFetch('/api/productos').then(r => r.json())
     ])
       .then(([rankData, reglasData, prodData]) => {
-        setRanking(rankData);
-        setReglas(reglasData);
-        setProductos(prodData);
+        const rankingList = Array.isArray(rankData) ? rankData : [];
+        const reglasList = Array.isArray(reglasData) ? reglasData : [];
+        const productosList = Array.isArray(prodData) ? prodData : [];
+        setRanking(rankingList);
+        setReglas(reglasList);
+        setProductos(productosList);
         
-        if (prodData.length > 0) {
-          setProductoCriterioId(prodData[0].id);
-          setProductoPremioId(prodData[0].id);
+        if (productosList.length > 0) {
+          setProductoCriterioId(productosList[0].id);
+          setProductoPremioId(productosList[0].id);
         }
         
         setLoading(false);
@@ -52,7 +56,7 @@ export default function Fidelidad() {
     }
 
     try {
-      const res = await fetch('/api/fidelidad/reglas', {
+      const res = await apiFetch('/api/fidelidad/reglas', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
