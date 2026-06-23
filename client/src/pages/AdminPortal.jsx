@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Routes, Route, Navigate, useNavigate, useLocation } from 'react-router-dom';
-import { LogOut, LayoutDashboard, Package, ClipboardList, UserCircle, Menu as MenuIcon, Gift, Star, RefreshCw, BarChart3, FolderOpen } from 'lucide-react';
+import { LogOut, LayoutDashboard, Package, ClipboardList, UserCircle, Menu as MenuIcon, Gift, Star, RefreshCw, BarChart3, FolderOpen, Users } from 'lucide-react';
 import { useAppContext } from '../context/AppContext';
 import Panel from './admin/Panel';
 import Productos from './admin/Productos';
@@ -10,6 +10,7 @@ import Fidelidad from './admin/Fidelidad';
 import Movimientos from './admin/Movimientos';
 import Reporte from './admin/Reporte';
 import Categorias from './admin/Categorias';
+import Clientes from './admin/Clientes';
 
 export default function AdminPortal() {
   const { user, logout } = useAppContext();
@@ -28,6 +29,7 @@ export default function AdminPortal() {
     { id: 'categorias', path: '/admin/categorias', icon: FolderOpen, label: 'Categorias', shortLabel: 'Categorias' },
     { id: 'movimientos', path: '/admin/movimientos', icon: RefreshCw, label: 'Kardex / Movimientos', shortLabel: 'Kardex' },
     { id: 'pedidos', path: '/admin/pedidos', icon: ClipboardList, label: 'Gestión Pedidos', shortLabel: 'Pedidos' },
+    { id: 'clientes', path: '/admin/clientes', icon: Users, label: 'Clientes', shortLabel: 'Clientes' },
     { id: 'promociones', path: '/admin/promociones', icon: Gift, label: 'Promociones', shortLabel: 'Combos' },
     { id: 'fidelidad', path: '/admin/fidelidad', icon: Star, label: 'Fidelidad y Premios', shortLabel: 'Premios' },
     { id: 'reporte', path: '/admin/reporte', icon: BarChart3, label: 'Informe Económico', shortLabel: 'Reporte' },
@@ -82,6 +84,7 @@ export default function AdminPortal() {
           <Route path="categorias" element={<Categorias />} />
           <Route path="movimientos" element={<Movimientos />} />
           <Route path="pedidos" element={<Pedidos />} />
+          <Route path="clientes" element={<Clientes />} />
           <Route path="promociones" element={<Promociones />} />
           <Route path="fidelidad" element={<Fidelidad />} />
           <Route path="reporte" element={<Reporte />} />

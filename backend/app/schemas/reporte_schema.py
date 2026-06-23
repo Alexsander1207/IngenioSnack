@@ -32,6 +32,7 @@ class ResumenData(BaseModel):
     stock_bajo: int = 0
     puntos_emitidos: int = 0
     sellos_emitidos: int = 0
+    estudiantes_registrados: int = 0
 
 
 class VentasData(BaseModel):
@@ -47,6 +48,7 @@ class ProductoVendidoItem(BaseModel):
     nombre: str
     cantidad_vendida: int
     total: Decimal
+    categoria: str | None = None
 
 
 class ProductoStockBajoItem(BaseModel):

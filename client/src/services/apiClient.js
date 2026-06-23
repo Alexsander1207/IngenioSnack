@@ -7,6 +7,9 @@ const endpointMap = [
   [/^\/api\/auth\/me$/, '/auth/me'],
   [/^\/api\/productos\/movimientos$/, '/stock/movimientos'],
   [/^\/api\/productos(\/.*)?$/, '/productos$1'],
+  [/^\/api\/favoritos\/productos(\/.*)?$/, '/favoritos/productos$1'],
+  [/^\/api\/stock(\/.*)?$/, '/stock$1'],
+  [/^\/api\/clientes(\/.*)?$/, '/clientes$1'],
   [/^\/api\/promociones(\/.*)?$/, '/promociones$1'],
   [/^\/api\/fidelidad\/ranking$/, '/fidelidad/ranking'],
   [/^\/api\/fidelidad\/reglas$/, '/fidelidad/reglas'],
@@ -78,6 +81,7 @@ const transformBody = (url, options = {}) => {
             promocion_id: linea.promocionId || null,
             cantidad: linea.cantidad,
           })),
+          pickup_at: payload.pickupAt || null,
         }),
       };
     }

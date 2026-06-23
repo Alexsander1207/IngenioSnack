@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from datetime import datetime, timezone
 from uuid import UUID
 
 from sqlalchemy import select
@@ -20,7 +21,21 @@ class PromocionRepository:
     def list_activas(self) -> list[Promocion]:
         result = self.db.execute(
             select(Promocion)
-            .where(Promocion.activo == True)  # noqa: E712
+            .where(Promocion.activo.is_(True))
+            .order_by(Promocion.created_at.desc())
+        )
+        return list(result.scalars().all())
+
+    def list_vigentes(self) -> list[Promocion]:
+        now = datetime.now(timezone.utc)
+        result = self.db.execute(
+            select(Promocion)
+            .where(
+                Promocion.activo.is_(True),
+                Promocion.disponible.is_(True),
+                Promocion.fecha_inicio <= now,
+                Promocion.fecha_fin >= now,
+            )
             .order_by(Promocion.created_at.desc())
         )
         return list(result.scalars().all())

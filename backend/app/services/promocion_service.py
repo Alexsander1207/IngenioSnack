@@ -15,6 +15,9 @@ class PromocionService:
     def list_activas(self) -> list[Promocion]:
         return self.repository.list_activas()
 
+    def list_vigentes(self) -> list[Promocion]:
+        return self.repository.list_vigentes()
+
     def get_promocion(self, promocion_id: UUID) -> Promocion | None:
         return self.repository.get(promocion_id)
 

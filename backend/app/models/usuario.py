@@ -2,7 +2,7 @@ import enum
 import uuid
 from datetime import datetime
 
-from sqlalchemy import Boolean, DateTime, Enum, String, func
+from sqlalchemy import Boolean, DateTime, Enum, Integer, String, Text, func
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.core.database import Base
@@ -23,6 +23,9 @@ class Usuario(Base):
     hashed_password: Mapped[str] = mapped_column(String, nullable=False)
     rol: Mapped[UsuarioRol] = mapped_column(Enum(UsuarioRol), nullable=False, default=UsuarioRol.ESTUDIANTE)
     activo: Mapped[bool] = mapped_column(Boolean, nullable=False, default=True)
+    conducta_score: Mapped[int] = mapped_column(Integer, nullable=False, default=100)
+    banned_until: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    ban_reason: Mapped[str | None] = mapped_column(Text, nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now(), nullable=False)
     updated_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True),

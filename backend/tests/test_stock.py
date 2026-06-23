@@ -51,6 +51,9 @@ class FakeStockService:
     def list_movimientos_por_producto(self, producto_id):
         return []
 
+    def list_alertas(self):
+        return []
+
     def crear_movimiento(self, payload):
         return _make_movimiento(
             producto_id=payload.producto_id,
@@ -137,7 +140,9 @@ class FakeProductoRepo:
         self._producto = SimpleNamespace(
             id=uuid4(),
             nombre="Test",
+            categoria="Snack",
             stock=stock,
+            activo=True,
         )
 
     def get(self, producto_id):
@@ -196,6 +201,21 @@ def test_service_rechaza_venta_que_deja_stock_negativo():
 
     with pytest.raises(ValueError):
         service.crear_movimiento(payload)
+
+
+def test_alertas_stock_bajo_devuelven_productos_bajo_umbral():
+    from app.services.stock_service import StockService
+
+    service = StockService(
+        stock_repo=FakeStockRepo(),
+        producto_repo=FakeProductoRepo(stock=3),
+    )
+
+    alertas = service.list_alertas(umbral=5)
+
+    assert len(alertas) == 1
+    assert alertas[0].stock_actual == 3
+    assert alertas[0].categoria == "Snack"
 
 
 # ---------------------------------------------------------------------------

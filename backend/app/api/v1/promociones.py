@@ -23,10 +23,15 @@ def list_promociones(service: PromocionService = Depends(get_promocion_service))
     return service.list_promociones()
 
 
-# /activas must be declared before /{promocion_id} to avoid route shadowing
+# /activas and /vigentes must be declared before /{promocion_id} to avoid route shadowing
 @router.get("/activas", response_model=list[PromocionRead])
 def list_activas(service: PromocionService = Depends(get_promocion_service)) -> list:
     return service.list_activas()
+
+
+@router.get("/vigentes", response_model=list[PromocionRead])
+def list_vigentes(service: PromocionService = Depends(get_promocion_service)) -> list:
+    return service.list_vigentes()
 
 
 @router.get("/{promocion_id}", response_model=PromocionRead)

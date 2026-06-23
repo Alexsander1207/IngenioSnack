@@ -9,7 +9,10 @@ export default function Promociones() {
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
   const [saving, setSaving] = useState(false);
-  const [form, setForm] = useState({ nombre: '', descripcion: '', precio: '', imagen: null });
+  const [form, setForm] = useState({
+    nombre: '', descripcion: '', precio: '', puntos_requeridos: '0',
+    fecha_inicio: '', fecha_fin: '', imagen: null,
+  });
   const [preview, setPreview] = useState(null);
   const [selectedProducts, setSelectedProducts] = useState([]); // [{ productoId, cantidad, producto }]
   const [categorias, setCategorias] = useState([]);
@@ -94,37 +97,40 @@ export default function Promociones() {
   const handleSave = async (e) => {
     e.preventDefault();
     if (saving) return;
-    if (selectedProducts.length === 0) {
-      toast('Agrega al menos un producto al combo', 'warning');
+    if (!form.fecha_inicio || !form.fecha_fin) {
+      toast('Las fechas de vigencia son obligatorias', 'warning');
       return;
     }
-    
+
     setSaving(true);
     try {
-      const formData = new FormData();
-      formData.append('nombre', form.nombre.trim());
-      if (form.descripcion) formData.append('descripcion', form.descripcion.trim());
-      formData.append('precio', form.precio);
-      formData.append('productos', JSON.stringify(selectedProducts.map(sp => ({
-        productoId: sp.productoId,
-        cantidad: sp.cantidad,
-      }))));
-      if (form.imagen) formData.append('imagen', form.imagen);
+      const body = {
+        nombre: form.nombre.trim(),
+        descripcion: form.descripcion.trim() || undefined,
+        tipo: 'COMBO',
+        valor: parseFloat(form.precio),
+        puntos_requeridos: parseInt(form.puntos_requeridos || '0', 10),
+        fecha_inicio: new Date(form.fecha_inicio).toISOString(),
+        fecha_fin: new Date(form.fecha_fin).toISOString(),
+        activo: true,
+        disponible: true,
+      };
 
       const res = await apiFetch('/api/promociones', {
         method: 'POST',
-        body: formData,
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body),
       });
       const data = await res.json();
-      if (data.error) { toast(data.error, 'error'); return; }
-      
-      toast('¡Combo creado correctamente!', 'success');
+      if (!res.ok) { toast(data.detail || 'Error al guardar', 'error'); return; }
+
+      toast('Combo creado correctamente', 'success');
       setShowForm(false);
-      setForm({ nombre: '', descripcion: '', precio: '', imagen: null });
+      setForm({ nombre: '', descripcion: '', precio: '', puntos_requeridos: '0', fecha_inicio: '', fecha_fin: '', imagen: null });
       setPreview(null);
       setSelectedProducts([]);
       loadPromociones();
-    } catch (err) {
+    } catch {
       toast('Error al guardar la promoción', 'error');
     } finally {
       setSaving(false);
@@ -220,9 +226,41 @@ export default function Promociones() {
                   type="number"
                   step="0.50"
                   min="0.50"
-                  placeholder="Ej: 8.00"
+                  placeholder="Ej: 3.00"
                   value={form.precio}
                   onChange={e => setForm({ ...form, precio: e.target.value })}
+                  style={{ borderRadius: '4px', border: '1px solid #D2B48C', padding: '10px 12px', fontSize: '13px', background: '#FFF', width: '100%' }}
+                  required
+                />
+              </div>
+              <div className="form-group">
+                <label style={{ color: '#6D4C35', fontWeight: 700, fontSize: '12px', marginBottom: '6px', display: 'block' }}>Puntos requeridos</label>
+                <input
+                  type="number"
+                  min="0"
+                  step="1"
+                  placeholder="0"
+                  value={form.puntos_requeridos}
+                  onChange={e => setForm({ ...form, puntos_requeridos: e.target.value })}
+                  style={{ borderRadius: '4px', border: '1px solid #D2B48C', padding: '10px 12px', fontSize: '13px', background: '#FFF', width: '100%' }}
+                />
+              </div>
+              <div className="form-group">
+                <label style={{ color: '#6D4C35', fontWeight: 700, fontSize: '12px', marginBottom: '6px', display: 'block' }}>Vigencia desde</label>
+                <input
+                  type="datetime-local"
+                  value={form.fecha_inicio}
+                  onChange={e => setForm({ ...form, fecha_inicio: e.target.value })}
+                  style={{ borderRadius: '4px', border: '1px solid #D2B48C', padding: '10px 12px', fontSize: '13px', background: '#FFF', width: '100%' }}
+                  required
+                />
+              </div>
+              <div className="form-group">
+                <label style={{ color: '#6D4C35', fontWeight: 700, fontSize: '12px', marginBottom: '6px', display: 'block' }}>Vigencia hasta</label>
+                <input
+                  type="datetime-local"
+                  value={form.fecha_fin}
+                  onChange={e => setForm({ ...form, fecha_fin: e.target.value })}
                   style={{ borderRadius: '4px', border: '1px solid #D2B48C', padding: '10px 12px', fontSize: '13px', background: '#FFF', width: '100%' }}
                   required
                 />
@@ -444,8 +482,8 @@ export default function Promociones() {
               <tr style={{ background: 'var(--primary-dark)' }}>
                 <th style={{ padding: '12px 16px', fontSize: '11px', borderTopLeftRadius: '4px' }}>Foto</th>
                 <th style={{ padding: '12px 16px', fontSize: '11px' }}>Nombre</th>
-                <th style={{ padding: '12px 16px', fontSize: '11px' }}>Productos incluidos</th>
-                <th style={{ padding: '12px 16px', fontSize: '11px' }}>Precio combo</th>
+                <th style={{ padding: '12px 16px', fontSize: '11px' }}>Precio / Puntos</th>
+                <th style={{ padding: '12px 16px', fontSize: '11px' }}>Vigencia</th>
                 <th style={{ padding: '12px 16px', fontSize: '11px' }}>Estado</th>
                 <th style={{ padding: '12px 16px', fontSize: '11px', borderTopRightRadius: '4px' }}>Acciones</th>
               </tr>
@@ -496,16 +534,17 @@ export default function Promociones() {
                     )}
                   </td>
                   <td style={{ padding: '10px 16px' }}>
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
-                      {p.items && p.items.map((item, idx) => (
-                        <span key={idx} style={{ fontSize: '13px', color: 'var(--text-muted)' }}>
-                          <strong>{item.cantidad}×</strong> {item.producto?.nombre || 'Producto'}
-                        </span>
-                      ))}
-                    </div>
+                    <strong style={{ color: 'var(--primary)', fontSize: '15px' }}>S/ {Number(p.precio || p.valor || 0).toFixed(2)}</strong>
+                    {p.puntos_requeridos > 0 && (
+                      <div style={{ fontSize: '11px', color: '#8B5A2B', marginTop: '2px' }}>
+                        + {p.puntos_requeridos} pts
+                      </div>
+                    )}
                   </td>
-                  <td style={{ padding: '10px 16px' }}>
-                    <strong style={{ color: 'var(--primary)', fontSize: '15px' }}>S/ {p.precio.toFixed(2)}</strong>
+                  <td style={{ padding: '10px 16px', fontSize: '12px', color: 'var(--text-muted)' }}>
+                    {p.fecha_inicio ? new Date(p.fecha_inicio).toLocaleDateString() : '—'}
+                    {' → '}
+                    {p.fecha_fin ? new Date(p.fecha_fin).toLocaleDateString() : '—'}
                   </td>
                   <td style={{ padding: '10px 16px' }}>
                     <span className={`badge ${p.disponible ? 'badge-success' : 'badge-danger'}`} style={{ borderRadius: '3px', fontSize: '11px', padding: '3px 8px' }}>

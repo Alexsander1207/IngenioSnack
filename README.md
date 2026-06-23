@@ -1,230 +1,252 @@
-# IngenioSnack — MVP Final
+# IngenioSnack
 
-Sistema de pedidos anticipados para la cafeteria **IngenioSnack**, ubicada al costado
-de los laboratorios de la Facultad de Ingenieria de Sistemas de la UNCP.
+Sistema de pedidos anticipados para la cafetería **IngenioSnack**, ubicada al costado de los laboratorios de la Facultad de Ingeniería de Sistemas de la UNCP.
 
-**Asignatura:** Metodologia de Desarrollo de Software (IS055B) — Unidad II: XP
-**Sprint:** MVP 5 dias — Semana 10 — **ENTREGADO**
-
----
-
-## Descripcion del proyecto
-
-**IngenioSnack** resuelve el problema de acumulacion de estudiantes durante el recreo.
-Los estudiantes realizan pedidos anticipados desde su celular antes de salir de clase,
-los recogen rapidamente y pagan contra entrega, eliminando las filas y la perdida de tiempo.
+**Asignatura:** Metodología de Desarrollo de Software (IS055B) — Unidad II: XP  
+**Sprint:** MVP 5 días — Semana 10 — **ENTREGADO**
 
 ---
 
-## Tecnologias usadas
+## Descripción del sistema
 
-| Tecnologia            | Uso                                                       |
-|-----------------------|-----------------------------------------------------------|
-| FastAPI (Python)      | Backend principal — API REST con auth JWT y roles         |
-| SQLAlchemy 2.x        | ORM para PostgreSQL/Supabase                              |
-| React + Vite          | Frontend SPA                                             |
-| Supabase (PostgreSQL) | Base de datos en la nube                                  |
-| pytest                | Pruebas del backend FastAPI (sin DB real en tests)        |
-| Node.js / Jest        | Backend legacy (conservado en `legacy/express-backend/`)  |
+**IngenioSnack** resuelve el problema de acumulación de estudiantes durante el recreo. Los estudiantes realizan pedidos anticipados desde su celular antes de salir de clase, los recogen rápidamente y pagan contra entrega, eliminando las filas y la pérdida de tiempo.
+
+El sistema tiene dos roles:
+
+- **Estudiante** — consulta el menú, arma su carrito, crea pedidos, acumula puntos y sellos de fidelidad.
+- **Administrador** — gestiona productos, categorías, promociones, stock, cambia estados de pedidos y consulta reportes.
 
 ---
 
-## Arquitectura actual
+## Arquitectura general
 
 ```
 IngenioSnack/
-├── backend/          # FastAPI — backend principal
-├── client/           # React + Vite — frontend SPA
-├── database/         # Schema SQL para Supabase/PostgreSQL
-├── uploads/          # Imagenes de productos subidas
-├── docs/             # Documentacion del proyecto
-└── legacy/
-    └── express-backend/  # Backend Node.js/Express (retirado)
-        ├── server.js
-        ├── src/
-        └── tests/
+├── backend/          # FastAPI — API REST con auth JWT y roles
+│   ├── app/
+│   │   ├── api/v1/       # endpoints por módulo
+│   │   ├── core/         # config, database, security
+│   │   ├── models/       # ORM SQLAlchemy
+│   │   ├── repositories/ # acceso a datos
+│   │   ├── schemas/      # Pydantic schemas (validación)
+│   │   └── services/     # lógica de negocio
+│   └── tests/            # pytest — 73 tests, SQLite en memoria
+├── client/           # React 19 + Vite 8 — SPA
+│   └── src/
+│       ├── pages/admin/    # panel administrador
+│       ├── pages/student/  # portal estudiante
+│       ├── components/     # Charts, Toast
+│       ├── context/        # AppContext (estado global)
+│       └── services/       # apiClient.js
+├── database/         # schema.sql + seed.sql para Supabase/PostgreSQL
+├── docs/             # documentación técnica y académica
+└── uploads/          # imágenes de productos
 ```
+
+Ver `docs/ARQUITECTURA.md` para el detalle completo.
 
 ---
 
-## Levantar el entorno de desarrollo
+## Tecnologías
 
-### Backend (FastAPI)
+| Capa       | Tecnología            | Versión  | Uso                                        |
+|------------|-----------------------|----------|--------------------------------------------|
+| Backend    | FastAPI               | latest   | API REST, routing, validación              |
+| Backend    | SQLAlchemy 2.x        | latest   | ORM para PostgreSQL                        |
+| Backend    | python-jose           | latest   | JWT — generación y validación de tokens    |
+| Backend    | passlib + bcrypt      | latest   | Hash de contraseñas                        |
+| Backend    | psycopg[binary]       | latest   | Driver PostgreSQL                          |
+| Backend    | uvicorn               | latest   | Servidor ASGI                              |
+| Frontend   | React                 | 19.x     | UI SPA                                     |
+| Frontend   | Vite                  | 8.x      | Bundler y dev server                       |
+| Frontend   | react-router-dom      | 7.x      | Navegación client-side                     |
+| Frontend   | lucide-react          | latest   | Iconografía                                |
+| Base datos | Supabase (PostgreSQL) | —        | Base de datos en la nube                   |
+| Tests      | pytest + httpx        | latest   | Suite de tests del backend (73 tests)      |
+
+---
+
+## Requisitos previos
+
+- Python 3.12+
+- Node.js 20+ y npm
+- Cuenta Supabase (proyecto activo) o PostgreSQL local
+- Git
+
+---
+
+## Instalación
+
+### 1. Clonar el repositorio
+
+```bash
+git clone <url-del-repositorio>
+cd IngenioSnack
+```
+
+### 2. Backend
 
 ```bash
 cd backend
 python -m venv .venv
-.venv\Scripts\Activate.ps1   # Windows PowerShell
+
+# Windows PowerShell
+.venv\Scripts\Activate.ps1
+
+# macOS / Linux
+source .venv/bin/activate
+
 pip install -r requirements.txt
-uvicorn app.main:app --reload
-# Disponible en http://localhost:8000
-# Swagger UI en http://localhost:8000/docs
 ```
 
-### Frontend (React)
+### 3. Frontend
 
 ```bash
 cd client
 npm install
+```
+
+---
+
+## Variables de entorno
+
+### Backend (`backend/.env`)
+
+Copiar `backend/.env.example` y completar con los valores reales:
+
+```env
+# Cadena de conexión PostgreSQL/Supabase
+# Formato: postgresql+psycopg://USUARIO:PASSWORD@HOST:PORT/DATABASE
+DATABASE_URL=postgresql+psycopg://usuario:password@host:5432/postgres
+
+# Clave secreta para firmar JWT — cambiar en producción
+SECRET_KEY=clave_secreta_larga_y_aleatoria
+
+# Entorno: development | test | staging | production
+ENVIRONMENT=development
+
+# Tiempo de expiración del token en minutos
+ACCESS_TOKEN_EXPIRE_MINUTES=60
+
+# Orígenes permitidos para CORS (separados por coma)
+CORS_ORIGINS=http://localhost:5173,http://127.0.0.1:5173
+```
+
+> El archivo `.env` está en `.gitignore` y **nunca** se sube al repositorio.
+
+### Frontend (`client/.env`)
+
+```env
+# URL base del backend — en desarrollo usa proxy de Vite, en producción la URL real
+VITE_API_URL=http://localhost:8000
+```
+
+---
+
+## Ejecución
+
+### Backend
+
+```bash
+cd backend
+uvicorn app.main:app --reload
+# API disponible en: http://localhost:8000
+# Swagger UI en:     http://localhost:8000/docs
+# ReDoc en:          http://localhost:8000/redoc
+```
+
+### Frontend
+
+```bash
+cd client
 npm run dev
-# Disponible en http://localhost:5173
+# App disponible en: http://localhost:5173
 # El proxy de Vite redirige /api → http://localhost:8000
 ```
 
-### Tests del backend
+---
+
+## Usuarios de desarrollo
+
+Después de ejecutar `database/seed.sql` en Supabase, existen dos usuarios base. Los hashes de contraseña son **placeholders** — para activar el login se deben generar hashes reales con:
+
+```bash
+cd backend
+python scripts/generate_dev_password_hash.py
+```
+
+| Rol          | Correo                            | Código estudiante |
+|--------------|-----------------------------------|-------------------|
+| ADMIN        | admin.dev@ingeniosnack.local      | —                 |
+| ESTUDIANTE   | estudiante.dev@ingeniosnack.local | DEV-EST-001       |
+
+> Las contraseñas de desarrollo se configuran localmente y no se commitean.
+
+---
+
+## Pruebas
 
 ```bash
 cd backend
 python -m pytest
+# Resultado esperado: 73 passed
+```
+
+Los tests usan SQLite en memoria — no requieren conexión a Supabase.
+
+```bash
+cd client
+npm run build
+# Resultado esperado: build exitoso en dist/
 ```
 
 ---
 
-## Conexion con Supabase
+## Base de datos
 
-Configurar variables de entorno en `backend/.env` (copiar desde `backend/.env.example`):
+El esquema completo está en `database/schema.sql`. El seed inicial (idempotente) está en `database/seed.sql`.
 
-```env
-DATABASE_URL=postgresql+psycopg://USER:PASSWORD@HOST:PORT/DATABASE
-SECRET_KEY=change_me_in_production
-```
+Ver `docs/BASE_DATOS.md` para el detalle de tablas, relaciones y constraints.
 
-> El archivo `.env` esta en `.gitignore` y **no** se sube al repositorio.
-> Los tests no requieren conexion real: usan SQLite en memoria.
+> **Importante:** si existe el archivo `supabase_setup.sql` en la raíz, es un archivo legacy. No ejecutarlo — usar `database/schema.sql` en su lugar.
 
 ---
 
-## Metodologia XP aplicada
+## Documentación técnica
 
-| Practica XP             | Evidencia en este proyecto                                    |
-|-------------------------|---------------------------------------------------------------|
-| **TDD**                 | Ciclo Red-Green-Refactor documentado en `EVIDENCIAS_TDD/`    |
-| **Pair programming**    | 7 sesiones en `BITACORA_PAIR_PROGRAMMING.md`                 |
-| **Releases pequeños**   | MVP funcional en 5 dias                                       |
-| **Diseño simple**       | Sin frameworks, solo Node.js puro y Jest                      |
-| **Propiedad colectiva** | Cualquier integrante modifica cualquier archivo               |
-| **Integracion continua**| `npm test` ejecutado en cada commit                           |
-| **Refactorizacion**     | 4 refactors documentados en `REFACTORIZACION.md`              |
+| Documento                    | Contenido                                         |
+|------------------------------|---------------------------------------------------|
+| `docs/ARQUITECTURA.md`       | Arquitectura por capas, flujo de comunicación     |
+| `docs/BASE_DATOS.md`         | Tablas, relaciones, constraints, seed             |
+| `docs/FLUJOS.md`             | Flujos principales del sistema                    |
+| `docs/EVIDENCIAS.md`         | Evidencias de tests, build y endpoints            |
+
+---
+
+## Metodología XP aplicada
+
+| Práctica XP             | Evidencia en este proyecto                              |
+|-------------------------|---------------------------------------------------------|
+| **TDD**                 | 73 tests backend — ciclo Red-Green-Refactor             |
+| **Releases pequeños**   | MVP funcional en 5 días, iteraciones semanales          |
+| **Diseño simple**       | Arquitectura por capas sin over-engineering             |
+| **Propiedad colectiva** | Cualquier integrante modifica cualquier módulo          |
+| **Integración continua**| Tests ejecutados en cada commit                         |
+| **Refactorización**     | Migración Express → FastAPI documentada                 |
 
 ---
 
 ## Historias de usuario implementadas
 
-| ID    | Historia                                          | Prioridad | Estimacion | Estado     |
-|-------|---------------------------------------------------|-----------|------------|------------|
-| HU-01 | Identificacion del estudiante                     | Alta      | 3 pts      | ✅ Cerrada |
-| HU-02 | Consulta del menu disponible                      | Alta      | 3 pts      | ✅ Cerrada |
-| HU-03 | Pedido anticipado desde celular                   | Alta      | 5 pts      | ✅ Cerrada |
-| HU-04 | Validacion de disponibilidad antes de confirmar   | Alta      | 5 pts      | ✅ Cerrada |
-| HU-05 | Gestion rapida de disponibilidad (Sr. Julio)      | Alta      | 4 pts      | ✅ Cerrada |
-| HU-06 | Pago contra entrega y cambio de estado            | Alta      | 3 pts      | ✅ Cerrada |
-| HU-07 | Registro de sandwiches para fidelidad             | Media     | 5 pts      | ✅ Cerrada |
-
-**Historias para siguiente iteracion:** HU-08 (productos mas vendidos), HU-09 (lista pedidos pendientes), interfaz web, base de datos real.
-
----
-
-## Estructura del repositorio
-
-```text
-IngenioSnack/
-├── backend/              - FastAPI — backend principal
-│   ├── app/
-│   │   ├── api/v1/       - endpoints por modulo
-│   │   ├── core/         - config, database, security
-│   │   ├── models/       - ORM SQLAlchemy
-│   │   ├── repositories/ - acceso a datos
-│   │   ├── schemas/      - Pydantic schemas
-│   │   └── services/     - logica de negocio
-│   └── tests/            - pytest (sin DB real)
-├── client/               - React + Vite — frontend SPA
-│   └── src/services/     - apiClient.js (adapter Express→FastAPI)
-├── database/             - Schema SQL para Supabase/PostgreSQL
-├── uploads/              - Imagenes de productos
-├── docs/                 - Documentacion del proyecto
-├── legacy/
-│   └── express-backend/  - Backend Node.js/Express retirado
-├── package.json
-└── README.md
-```
-
----
-
-## Tecnologias utilizadas
-
-| Herramienta | Version  | Uso                                  |
-|-------------|----------|--------------------------------------|
-| Node.js     | v22.x    | Runtime del servidor                 |
-| Jest        | ^29.7.0  | Framework de pruebas unitarias (TDD) |
-| JavaScript  | ES2020   | Lenguaje principal                   |
-
----
-
-## Comandos de ejecucion
-
-```bash
-# Backend FastAPI
-cd backend && uvicorn app.main:app --reload
-
-# Frontend React
-cd client && npm run dev
-
-# Tests del backend
-cd backend && python -m pytest
-
-# Tests legacy (Express/Jest — conservados para referencia historica)
-cd legacy/express-backend && npm test
-```
-
----
-
-## Estado final del MVP — Dia 5
-
-```
-Tests: 22/22 en verde ✅
-
-menuService
-  ✅ registrarProducto
-  ✅ listarProductos
-  ✅ listarProductosDisponibles
-  ✅ cambiarDisponibilidadProducto
-
-pedidoService
-  ✅ crearPedido (con validacion de disponibilidad)
-  ✅ validarDisponibilidadPedido
-  ✅ confirmarPedido
-  ✅ cambiarEstado (PENDIENTE → CONFIRMADO → EN_PREPARACION → LISTO → ENTREGADO)
-  ✅ calcularTotalPedido
-  ✅ calcularSubtotal
-  ✅ agregarItemPedido
-
-fidelidadService
-  ✅ acreditarPuntos (1 punto por cada S/ 1 gastado)
-  ✅ canjearPuntos
-  ✅ registrarSandwich (10 sandwiches = 1 cafe gratis)
-  ✅ obtenerBeneficios
-  ✅ canjearCafeGratis
-```
-
-### Regla de negocio central (HU-04)
-
-Solo se puede confirmar un pedido si **todos** los productos tienen `disponible: true`.
-Si alguno esta agotado: *"El pedido contiene productos no disponibles"*.
-
-### Programa de fidelidad (HU-07)
-
-- 1 punto de fidelidad por cada S/ 1 gastado en pedidos entregados.
-- Cada 10 sandwiches comprados y entregados: 1 cafe americano gratis.
-- El contador se reinicia automaticamente al canjear el beneficio.
-
----
-
-## Decisiones relevantes
-
-- Pago **contra entrega** — sin integracion bancaria en esta iteracion.
-- **Cafe americano gratis** es la recompensa (mencionada expresamente por el cliente).
-- Identificacion por **codigo universitario** o correo institucional.
-- Almacenamiento **en memoria** (MVP sin base de datos).
+| ID    | Historia                                        | Estado     |
+|-------|-------------------------------------------------|------------|
+| HU-01 | Identificación del estudiante                   | ✅ Cerrada |
+| HU-02 | Consulta del menú disponible                    | ✅ Cerrada |
+| HU-03 | Pedido anticipado desde celular                 | ✅ Cerrada |
+| HU-04 | Validación de disponibilidad antes de confirmar | ✅ Cerrada |
+| HU-05 | Gestión rápida de disponibilidad (Sr. Julio)    | ✅ Cerrada |
+| HU-06 | Pago contra entrega y cambio de estado          | ✅ Cerrada |
+| HU-07 | Registro de sandwiches para fidelidad           | ✅ Cerrada |
 
 ---
 
@@ -232,12 +254,12 @@ Si alguno esta agotado: *"El pedido contiene productos no disponibles"*.
 
 | # | Nombre                            | Rol principal                |
 |---|-----------------------------------|------------------------------|
-| 1 | Artica Arias Gustavo Alonso       | Frontend y diseno visual      |
-| 2 | Chavez Paquiyauri Jack Luis       | Backend y logica del sistema  |
-| 3 | Flores Ccente Franklin David      | Tests, TDD y refactorizacion  |
-| 4 | Jayo Mallqui Alexsander Antoni    | Documentacion y evidencias    |
-| 5 | Raymundo Condor Frank Angel       | Integracion y soporte         |
+| 1 | Artica Arias Gustavo Alonso       | Frontend y diseño visual     |
+| 2 | Chavez Paquiyauri Jack Luis       | Backend y lógica del sistema |
+| 3 | Flores Ccente Franklin David      | Tests, TDD y refactorización |
+| 4 | Jayo Mallqui Alexsander Antoni    | Documentación y evidencias   |
+| 5 | Raymundo Condor Frank Angel       | Integración y soporte        |
 
 ---
 
-*Practica desarrollada para entrega academica en ADESA — IS055B UNCP FIS*
+*Práctica desarrollada para entrega académica — IS055B UNCP FIS*

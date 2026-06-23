@@ -26,8 +26,15 @@ class FakeProductoService:
             precio=Decimal("3.50"),
             stock=10,
             categoria="Bebida",
+            categoria_id=None,
             imagen_url=None,
+            disponible=True,
             activo=True,
+            calorias=None,
+            proteinas=None,
+            carbohidratos=None,
+            grasas=None,
+            alergenos=None,
             created_at=datetime.now(timezone.utc),
             updated_at=datetime.now(timezone.utc),
         )
@@ -73,6 +80,23 @@ def test_get_productos_returns_list_without_real_database():
 def test_producto_schema_rejects_negative_price():
     with pytest.raises(ValidationError):
         ProductoCreate(nombre="Cafe", precio=Decimal("-1"), stock=0)
+
+
+def test_producto_schema_accepts_nullable_nutrition_fields():
+    producto = ProductoCreate(
+        nombre="Barra energetica",
+        descripcion="Snack de avena",
+        precio=Decimal("4.00"),
+        stock=8,
+        calorias=180,
+        proteinas=Decimal("6.5"),
+        carbohidratos=Decimal("24.0"),
+        grasas=Decimal("5.0"),
+        alergenos="mani",
+    )
+
+    assert producto.calorias == 180
+    assert producto.alergenos == "mani"
 
 
 def test_admin_product_route_rejects_access_without_token():

@@ -6,7 +6,9 @@ from app.models.producto import Producto
 from app.models.stock import StockMovimiento, TipoMovimiento
 from app.repositories.producto_repository import ProductoRepository
 from app.repositories.stock_repository import StockRepository
-from app.schemas.stock_schema import MovimientoCreate
+from app.schemas.stock_schema import MovimientoCreate, StockAlertaRead
+
+STOCK_BAJO_UMBRAL = 5
 
 _TIPOS_SALIDA = {TipoMovimiento.SALIDA, TipoMovimiento.VENTA}
 _TIPOS_ENTRADA = {TipoMovimiento.ENTRADA, TipoMovimiento.CANCELACION}
@@ -29,6 +31,24 @@ class StockService:
 
     def list_movimientos_por_producto(self, producto_id: UUID) -> list[StockMovimiento]:
         return self.stock_repo.list_movimientos_por_producto(producto_id)
+
+    def list_alertas(self, umbral: int = STOCK_BAJO_UMBRAL) -> list[StockAlertaRead]:
+        productos = [
+            producto
+            for producto in self.producto_repo.list()
+            if getattr(producto, "activo", True) and getattr(producto, "stock", 0) <= umbral
+        ]
+        return [
+            StockAlertaRead(
+                producto_id=producto.id,
+                producto=producto.nombre,
+                stock_actual=producto.stock,
+                categoria=getattr(producto, "categoria", None),
+                umbral=umbral,
+                recomendacion=f"Reponer al menos {max(umbral * 2 - producto.stock, umbral)} unidades.",
+            )
+            for producto in productos
+        ]
 
     def crear_movimiento(self, payload: MovimientoCreate) -> StockMovimiento:
         producto = self.producto_repo.get(payload.producto_id)

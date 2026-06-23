@@ -28,6 +28,8 @@ class FidelidadService:
         sellos = sum(m.sellos for m in movimientos)
         regla = self.repo.get_regla_activa_principal()
         sellos_canje_cafe = regla.sellos_canje_cafe if regla else 10
+        puntos_por_sol = regla.puntos_por_sol if regla else Decimal("1.00")
+        sellos_por_pedido = regla.sellos_por_pedido if regla else 1
         cafes_gratis = sellos // sellos_canje_cafe if sellos_canje_cafe > 0 else 0
         return ResumenFidelidad(
             usuario_id=usuario_id,
@@ -35,6 +37,9 @@ class FidelidadService:
             sellos=sellos,
             sandwiches=sellos,
             cafesGratis=cafes_gratis,
+            sellosObjetivo=sellos_canje_cafe,
+            puntosPorSol=puntos_por_sol,
+            sellosPorPedido=sellos_por_pedido,
             premiosDinamicos=[],
             movimientos=movimientos,
         )
@@ -80,7 +85,7 @@ class FidelidadService:
         descripcion: str | None = None,
     ) -> FidelidadMovimiento:
         """
-        Acredita puntos y sellos por un pedido recogido.
+        Acredita puntos y sellos por un pedido recogido (solo monto monetario).
 
         Idempotente: si ya existe una ACREDITACION_PEDIDO para este pedido_id,
         retorna el movimiento existente sin crear duplicado.
@@ -102,6 +107,45 @@ class FidelidadService:
             sellos=sellos_por_pedido,
             descripcion=descripcion or f"Acreditacion por pedido {pedido_id}",
         )
+
+    def deducir_puntos_promo(
+        self,
+        usuario_id: UUID,
+        pedido_id: UUID,
+        puntos: int,
+        descripcion: str | None = None,
+    ) -> FidelidadMovimiento:
+        """Descuenta puntos al crear un pedido con promo que los requiere."""
+        self._validar_saldo(usuario_id, puntos, 0)
+        return self.repo.create_movimiento(
+            usuario_id=usuario_id,
+            pedido_id=pedido_id,
+            tipo_movimiento=TipoMovimientoFidelidad.CANJE_PROMOCION,
+            puntos=-puntos,
+            sellos=0,
+            descripcion=descripcion or f"Canje de {puntos} puntos por promocion",
+        )
+
+    def devolver_puntos_promo(self, pedido_id: UUID) -> int:
+        """Devuelve puntos descontados al cancelar un pedido. Idempotente."""
+        if self.repo.get_reversa_por_pedido(pedido_id):
+            return 0
+        canjes = self.repo.get_canjes_promo_por_pedido(pedido_id)
+        if not canjes:
+            return 0
+        total_puntos = sum(-c.puntos for c in canjes)
+        if total_puntos <= 0:
+            return 0
+        usuario_id = canjes[0].usuario_id
+        self.repo.create_movimiento(
+            usuario_id=usuario_id,
+            pedido_id=pedido_id,
+            tipo_movimiento=TipoMovimientoFidelidad.REVERSA,
+            puntos=total_puntos,
+            sellos=0,
+            descripcion="Devolucion de puntos por cancelacion de pedido",
+        )
+        return total_puntos
 
     def crear_movimiento_admin(
         self, payload: MovimientoFidelidadCreate

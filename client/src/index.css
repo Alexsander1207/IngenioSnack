@@ -1952,6 +1952,400 @@ body {
   gap: 6px;
 }
 
+.store-card {
+  cursor: pointer;
+}
+
+.store-card:focus-visible {
+  outline: 3px solid rgba(196, 122, 44, 0.3);
+  outline-offset: 3px;
+}
+
+.store-card-topline {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.product-desc {
+  min-height: 0;
+  display: -webkit-box;
+  overflow: hidden;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+}
+
+.store-points {
+  display: block;
+  margin-top: 2px;
+  color: var(--text-muted);
+  font-size: 11px;
+  font-weight: 800;
+}
+
+.store-fav-btn {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  width: 34px;
+  height: 34px;
+  border: 1px solid rgba(255, 255, 255, 0.72);
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.86);
+  color: var(--text-muted);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  z-index: 12;
+  box-shadow: var(--shadow);
+}
+
+.store-fav-btn.active,
+.modal-fav-btn.active {
+  color: #b42318;
+}
+
+.store-nutrition-chip {
+  width: 24px;
+  height: 24px;
+  border-radius: 999px;
+  background: rgba(52, 106, 120, 0.1);
+  color: var(--info);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.product-modal-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 500;
+  background: rgba(27, 18, 14, 0.52);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 22px;
+}
+
+.product-modal {
+  width: min(820px, 100%);
+  max-height: min(720px, calc(100vh - 44px));
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  box-shadow: 0 24px 70px rgba(27, 18, 14, 0.32);
+  display: grid;
+  grid-template-columns: minmax(260px, 0.9fr) minmax(320px, 1.1fr);
+  overflow: hidden;
+  position: relative;
+}
+
+.product-modal-close {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  width: 34px;
+  height: 34px;
+  border-radius: 999px;
+  border: 1px solid rgba(234, 220, 202, 0.9);
+  background: rgba(255, 255, 255, 0.9);
+  color: var(--primary);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  z-index: 2;
+}
+
+.product-modal-media {
+  min-height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+}
+
+.product-modal-media img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.product-modal-body {
+  padding: 28px;
+  overflow-y: auto;
+}
+
+.product-modal-title-row {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.product-modal-category {
+  color: var(--secondary);
+  font-size: 12px;
+  font-weight: 900;
+  text-transform: uppercase;
+}
+
+.product-modal h3 {
+  margin-top: 4px;
+  color: var(--text);
+  font-size: 24px;
+  line-height: 1.15;
+}
+
+.modal-fav-btn {
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--surface);
+  color: var(--text-muted);
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 9px 11px;
+  font-size: 12px;
+  font-weight: 800;
+  cursor: pointer;
+  flex-shrink: 0;
+}
+
+.product-modal-meta {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin: 18px 0;
+}
+
+.product-modal-price {
+  color: var(--primary);
+  font-size: 22px;
+  font-weight: 900;
+}
+
+.product-modal-points {
+  border-radius: 999px;
+  background: rgba(47, 122, 87, 0.1);
+  color: var(--success);
+  padding: 5px 10px;
+  font-size: 12px;
+  font-weight: 900;
+}
+
+.product-modal-description,
+.product-modal-muted {
+  color: var(--text-muted);
+  font-size: 14px;
+  line-height: 1.55;
+}
+
+.product-modal-section {
+  margin-top: 22px;
+  padding-top: 18px;
+  border-top: 1px solid var(--border);
+}
+
+.product-modal-section h4 {
+  color: var(--primary);
+  font-size: 14px;
+  font-weight: 900;
+  margin-bottom: 12px;
+}
+
+.nutrition-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.nutrition-item {
+  border: 1px solid rgba(234, 220, 202, 0.9);
+  border-radius: 8px;
+  background: rgba(255, 247, 237, 0.58);
+  padding: 10px 12px;
+}
+
+.nutrition-item span,
+.nutrition-item strong {
+  display: block;
+}
+
+.nutrition-item span {
+  color: var(--text-muted);
+  font-size: 11px;
+  font-weight: 800;
+}
+
+.nutrition-item strong {
+  color: var(--text);
+  font-size: 14px;
+  margin-top: 2px;
+}
+
+.product-modal-actions {
+  margin-top: 22px;
+}
+
+.modal-qty-controls {
+  width: 100%;
+  justify-content: center;
+  padding: 8px;
+  border-radius: 8px;
+}
+
+.clientes-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  gap: 14px;
+}
+
+.cliente-card {
+  border: 1px solid var(--border);
+  border-left: 5px solid var(--success);
+  border-radius: 8px;
+  background: var(--surface);
+  box-shadow: var(--shadow);
+  padding: 16px;
+}
+
+.cliente-card.media {
+  border-left-color: var(--warning);
+}
+
+.cliente-card.mala,
+.cliente-card.baneado {
+  border-left-color: var(--danger);
+}
+
+.cliente-card-head {
+  display: flex;
+  gap: 12px;
+  align-items: flex-start;
+}
+
+.cliente-card h3 {
+  font-size: 16px;
+  color: var(--text);
+  margin-bottom: 4px;
+}
+
+.cliente-card p,
+.cliente-foot,
+.cliente-ban {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--text-muted);
+  font-size: 12px;
+}
+
+.cliente-avatar {
+  width: 38px;
+  height: 38px;
+  border-radius: 8px;
+  background: var(--accent);
+  color: var(--primary);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.cliente-status {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin: 14px 0;
+  padding: 9px 10px;
+  border-radius: 8px;
+  background: rgba(47, 122, 87, 0.08);
+  color: var(--success);
+  font-size: 12px;
+  font-weight: 900;
+}
+
+.cliente-card.media .cliente-status {
+  background: rgba(217, 119, 6, 0.1);
+  color: var(--warning);
+}
+
+.cliente-card.mala .cliente-status,
+.cliente-card.baneado .cliente-status {
+  background: rgba(154, 42, 42, 0.1);
+  color: var(--danger);
+}
+
+.cliente-ban {
+  border: 1px solid rgba(154, 42, 42, 0.16);
+  background: rgba(154, 42, 42, 0.07);
+  color: var(--danger);
+  border-radius: 8px;
+  padding: 8px 10px;
+  margin-bottom: 12px;
+  font-weight: 800;
+}
+
+.cliente-metrics {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 8px;
+}
+
+.cliente-metrics div {
+  border: 1px solid rgba(234, 220, 202, 0.9);
+  border-radius: 8px;
+  padding: 9px;
+  background: rgba(255, 247, 237, 0.55);
+}
+
+.cliente-metrics span,
+.cliente-metrics strong {
+  display: block;
+}
+
+.cliente-metrics span {
+  color: var(--text-muted);
+  font-size: 11px;
+  font-weight: 800;
+}
+
+.cliente-metrics strong {
+  color: var(--text);
+  font-size: 17px;
+  margin-top: 2px;
+}
+
+.cliente-foot {
+  margin-top: 12px;
+  padding-top: 12px;
+  border-top: 1px solid var(--border);
+}
+
+@media (max-width: 720px) {
+  .product-modal {
+    grid-template-columns: 1fr;
+    max-height: calc(100vh - 28px);
+  }
+
+  .product-modal-media {
+    min-height: 220px;
+    max-height: 280px;
+  }
+
+  .product-modal-body {
+    padding: 20px;
+  }
+
+  .nutrition-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
 @media (max-width: 820px) {
   .admin-category-layout {
     grid-template-columns: 1fr;

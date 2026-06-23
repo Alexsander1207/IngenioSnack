@@ -10,6 +10,11 @@ export default function Cart() {
   const navigate = useNavigate();
   const { toast } = useToast();
   const [loading, setLoading] = useState(false);
+  const [pickupAt, setPickupAt] = useState(() => {
+    const date = new Date(Date.now() + 20 * 60 * 1000);
+    date.setSeconds(0, 0);
+    return date.toISOString().slice(0, 16);
+  });
 
   const total = cart.reduce((acc, c) => {
     if (c.tipo === 'promocion') return acc + (c.promocion.precio * c.cantidad);
@@ -30,10 +35,14 @@ export default function Cart() {
       const res = await apiFetch('/api/pedidos', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ estudianteId: user.id, lineas })
+        body: JSON.stringify({ estudianteId: user.id, lineas, pickupAt: pickupAt ? new Date(pickupAt).toISOString() : null })
       });
       const created = await res.json();
-      if (created.error) { toast('Error: ' + created.error, 'error'); setLoading(false); return; }
+      if (!res.ok || created.error || created.detail) {
+        toast(created.detail || created.error || 'Error al confirmar el pedido', 'error');
+        setLoading(false);
+        return;
+      }
       
       setConfirmedOrder(created);
       clearCart();
@@ -131,6 +140,15 @@ export default function Cart() {
         </div>
         <div className="cart-summary">
           <div className="s-row s-total"><span>Total a pagar:</span><strong>S/ {total.toFixed(2)}</strong></div>
+          <div className="form-group" style={{ marginTop: '12px' }}>
+            <label>Hora estimada de recojo</label>
+            <input
+              type="datetime-local"
+              value={pickupAt}
+              min={new Date().toISOString().slice(0, 16)}
+              onChange={(event) => setPickupAt(event.target.value)}
+            />
+          </div>
           <p className="payment-note"><Wallet /> El pago es contra entrega al recoger tu pedido</p>
           <button className="btn btn-primary btn-full" onClick={confirmOrder} disabled={loading}>
             {loading ? 'Confirmando...' : 'Confirmar pedido'}

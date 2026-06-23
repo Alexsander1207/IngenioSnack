@@ -1,5 +1,5 @@
-import { createContext, useContext, useState, useEffect } from 'react';
-import { clearToken } from '../services/apiClient';
+import { createContext, useContext, useState, useEffect, useCallback } from 'react';
+import { clearToken, apiFetch } from '../services/apiClient';
 
 const AppContext = createContext();
 
@@ -17,11 +17,29 @@ export const AppProvider = ({ children }) => {
   });
 
   const [confirmedOrder, setConfirmedOrder] = useState(null);
+  const [puntosSaldo, setPuntosSaldo] = useState(0);
+
+  const refreshPuntos = useCallback(async () => {
+    if (!user) { setPuntosSaldo(0); return; }
+    try {
+      const res = await apiFetch('/api/fidelidad/me');
+      if (res.ok) {
+        const data = await res.json();
+        setPuntosSaldo(data.puntos ?? 0);
+      }
+    } catch {
+      // silently ignore — puntos display is non-critical
+    }
+  }, [user]);
 
   useEffect(() => {
     if (user) localStorage.setItem('ingeniosnack_user', JSON.stringify(user));
-    else localStorage.removeItem('ingeniosnack_user');
+    else { localStorage.removeItem('ingeniosnack_user'); setPuntosSaldo(0); }
   }, [user]);
+
+  useEffect(() => {
+    if (user) refreshPuntos();
+  }, [user, refreshPuntos]);
 
   useEffect(() => {
     localStorage.setItem('ingeniosnack_cart', JSON.stringify(cart));
@@ -33,6 +51,7 @@ export const AppProvider = ({ children }) => {
     setUser(null);
     setCart([]);
     setConfirmedOrder(null);
+    setPuntosSaldo(0);
   };
 
   const addToCart = (item, tipo = 'producto') => {
@@ -70,7 +89,8 @@ export const AppProvider = ({ children }) => {
     <AppContext.Provider value={{
       user, login, logout,
       cart, addToCart, changeQty, clearCart,
-      confirmedOrder, setConfirmedOrder
+      confirmedOrder, setConfirmedOrder,
+      puntosSaldo, refreshPuntos,
     }}>
       {children}
     </AppContext.Provider>

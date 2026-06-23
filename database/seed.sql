@@ -52,7 +52,7 @@ begin
         'Admin Desarrollo',
         'admin.dev@ingeniosnack.local',
         null,
-        'BCRYPT_HASH_PLACEHOLDER_GENERAR_DESDE_BACKEND',
+        '$2b$12$LB6jc4r261A35cRID0mHUuUMQdq8g7Y7ktVZg85x02c6id/8DgYf2',
         'ADMIN',
         true
       ),
@@ -61,7 +61,7 @@ begin
         'Estudiante Desarrollo',
         'estudiante.dev@ingeniosnack.local',
         'DEV-EST-001',
-        'BCRYPT_HASH_PLACEHOLDER_GENERAR_DESDE_BACKEND',
+        '$2b$12$/pvHcfRU8VwWEJz0Ud.wq.B2FHl376w9Lq76ZsToZb5gv0Yr265Fy',
         'ESTUDIANTE',
         true
       )

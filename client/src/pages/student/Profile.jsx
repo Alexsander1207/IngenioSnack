@@ -23,8 +23,12 @@ export default function Profile() {
           ...(profile || user || {}),
           beneficios: {
             puntos: beneficios.puntos || 0,
+            sellos: beneficios.sellos || 0,
             sandwiches: beneficios.sandwiches || 0,
             cafesGratis: beneficios.cafesGratis || beneficios.cafes_gratis || 0,
+            sellosObjetivo: beneficios.sellosObjetivo || beneficios.sellos_objetivo || 10,
+            puntosPorSol: beneficios.puntosPorSol || beneficios.puntos_por_sol || 1,
+            sellosPorPedido: beneficios.sellosPorPedido || beneficios.sellos_por_pedido || 1,
             premiosDinamicos: Array.isArray(beneficios.premiosDinamicos) ? beneficios.premiosDinamicos : [],
           },
         });
@@ -67,7 +71,10 @@ export default function Profile() {
   if (!data) return <div className="screen"><p className="error-msg">Error al cargar datos.</p></div>;
 
   const b = data.beneficios;
-  const sandwichesEnCiclo = b.sandwiches % 10;
+  const sellosObjetivo = Math.max(Number(b.sellosObjetivo || 10), 1);
+  const sellosEnCiclo = b.sellos % sellosObjetivo;
+  const tarjetaCompleta = b.sellos > 0 && sellosEnCiclo === 0;
+  const sellosVisuales = tarjetaCompleta ? sellosObjetivo : sellosEnCiclo;
 
   const handleLogout = () => {
     logout();
@@ -104,34 +111,34 @@ export default function Profile() {
           <div className="fid-item">
             <div className="fid-lbl">Puntos acumulados</div>
             <div className="fid-val">{b.puntos} <span style={{ fontSize: '18px', fontWeight: 600 }}>pts</span></div>
-            <div className="fid-note">1 punto por cada S/ 1.00 gastado en pedidos entregados</div>
+            <div className="fid-note">{b.puntosPorSol} punto(s) por cada S/ 1.00 en pedidos recogidos</div>
           </div>
 
           {/* Tarjeta de 10 sellos visual */}
           <div className="fid-item">
             <div className="fid-lbl" style={{ marginBottom: '12px' }}>
               <Coffee size={14} style={{ marginRight: '5px', verticalAlign: 'middle' }} />
-              Tarjeta café gratis — {sandwichesEnCiclo}/10 sandwiches
+              Tarjeta café gratis — {sellosVisuales}/{sellosObjetivo} sellos
             </div>
 
             {/* Grid de 10 sellos */}
             <div style={{
               display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: '8px',
-              background: 'linear-gradient(135deg, #2D1A0E, #4A2A1A)',
+              background: tarjetaCompleta ? 'linear-gradient(135deg, #B7791F, #F6D365)' : 'linear-gradient(135deg, #2D1A0E, #4A2A1A)',
               borderRadius: '12px', padding: '16px', marginBottom: '10px'
             }}>
-              {Array.from({ length: 10 }, (_, i) => (
+              {Array.from({ length: sellosObjetivo }, (_, i) => (
                 <div key={i} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '4px' }}>
                   <div style={{
                     width: '40px', height: '40px', borderRadius: '50%',
-                    background: i < sandwichesEnCiclo ? 'rgba(255,255,255,0.15)' : 'rgba(255,255,255,0.05)',
-                    border: `2px solid ${i < sandwichesEnCiclo ? '#F5E6D3' : 'rgba(255,255,255,0.2)'}`,
+                    background: i < sellosVisuales ? 'rgba(255,255,255,0.18)' : 'rgba(255,255,255,0.05)',
+                    border: `2px solid ${i < sellosVisuales ? '#FFF8DC' : 'rgba(255,255,255,0.2)'}`,
                     display: 'flex', alignItems: 'center', justifyContent: 'center',
                     fontSize: '18px', transition: 'all 0.2s'
                   }}>
-                    {i < sandwichesEnCiclo ? '🥪' : <Circle size={16} style={{ color: 'rgba(255,255,255,0.3)' }} />}
+                    {i < sellosVisuales ? <CheckCircle size={18} style={{ color: '#FFF8DC' }} /> : <Circle size={16} style={{ color: 'rgba(255,255,255,0.3)' }} />}
                   </div>
-                  <span style={{ fontSize: '10px', color: i < sandwichesEnCiclo ? '#F5E6D3' : 'rgba(255,255,255,0.3)', fontWeight: 600 }}>
+                  <span style={{ fontSize: '10px', color: i < sellosVisuales ? '#FFF8DC' : 'rgba(255,255,255,0.3)', fontWeight: 600 }}>
                     {i + 1}
                   </span>
                 </div>
@@ -139,8 +146,8 @@ export default function Profile() {
             </div>
 
             <div className="fid-note">
-              {sandwichesEnCiclo < 10
-                ? `Te faltan ${10 - sandwichesEnCiclo} sandwich(es) más para ganar un café gratis ☕`
+              {!tarjetaCompleta
+                ? `Te faltan ${sellosObjetivo - sellosVisuales} sello(s) para ganar un café gratis`
                 : '¡Completa! Puedes canjear tu café.'
               }
             </div>
@@ -166,7 +173,7 @@ export default function Profile() {
               </button>
             ) : (
               <div className="fid-note" style={{ marginTop: '6px' }}>
-                Completa tu tarjeta de 10 sellos para ganar uno.
+                Completa tu tarjeta de {sellosObjetivo} sellos para ganar uno.
               </div>
             )}
           </div>

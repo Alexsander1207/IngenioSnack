@@ -13,6 +13,7 @@ class TipoMovimientoFidelidad(str, enum.Enum):
     ACREDITACION_PEDIDO = "ACREDITACION_PEDIDO"
     AJUSTE_ADMIN = "AJUSTE_ADMIN"
     CANJE = "CANJE"
+    CANJE_PROMOCION = "CANJE_PROMOCION"
     REVERSA = "REVERSA"
 
 

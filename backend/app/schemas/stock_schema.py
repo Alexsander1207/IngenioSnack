@@ -34,5 +34,15 @@ class StockItem(BaseModel):
     id: UUID
     nombre: str
     stock: int
+    categoria: str | None = None
 
     model_config = ConfigDict(from_attributes=True)
+
+
+class StockAlertaRead(BaseModel):
+    producto_id: UUID
+    producto: str
+    stock_actual: int
+    categoria: str | None = None
+    umbral: int
+    recomendacion: str

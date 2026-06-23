@@ -74,6 +74,24 @@ class FidelidadRepository:
         self.db.refresh(regla)
         return regla
 
+    def get_canjes_promo_por_pedido(self, pedido_id: UUID) -> list[FidelidadMovimiento]:
+        result = self.db.execute(
+            select(FidelidadMovimiento).where(
+                FidelidadMovimiento.pedido_id == pedido_id,
+                FidelidadMovimiento.tipo_movimiento == TipoMovimientoFidelidad.CANJE_PROMOCION,
+            )
+        )
+        return list(result.scalars().all())
+
+    def get_reversa_por_pedido(self, pedido_id: UUID) -> FidelidadMovimiento | None:
+        result = self.db.execute(
+            select(FidelidadMovimiento).where(
+                FidelidadMovimiento.pedido_id == pedido_id,
+                FidelidadMovimiento.tipo_movimiento == TipoMovimientoFidelidad.REVERSA,
+            )
+        )
+        return result.scalar_one_or_none()
+
     def create_movimiento(
         self,
         usuario_id: UUID,

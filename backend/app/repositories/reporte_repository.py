@@ -9,6 +9,7 @@ from sqlalchemy.orm import Session
 from app.models.fidelidad import FidelidadMovimiento
 from app.models.pedido import ItemPedido, Pedido, PedidoEstado
 from app.models.producto import Producto
+from app.models.usuario import Usuario, UsuarioRol
 from app.schemas.reporte_schema import (
     FidelidadData,
     MovimientoFidelidadResumen,
@@ -77,6 +78,14 @@ class ReporteRepository:
                 )
             ).scalar()
         )
+        estudiantes_registrados = _int(
+            self.db.execute(
+                select(func.count(Usuario.id)).where(
+                    Usuario.rol == UsuarioRol.ESTUDIANTE,
+                    Usuario.activo == True,  # noqa: E712
+                )
+            ).scalar()
+        )
         return ResumenData(
             total_pedidos=total_pedidos,
             ventas_totales=ventas_totales,
@@ -86,6 +95,7 @@ class ReporteRepository:
             stock_bajo=stock_bajo,
             puntos_emitidos=puntos_emitidos,
             sellos_emitidos=sellos_emitidos,
+            estudiantes_registrados=estudiantes_registrados,
         )
 
     def get_ventas(
@@ -174,9 +184,11 @@ class ReporteRepository:
             select(
                 ItemPedido.producto_id,
                 func.max(ItemPedido.nombre_producto).label("nombre"),
+                func.max(Producto.categoria).label("categoria"),
                 func.sum(ItemPedido.cantidad).label("cantidad_vendida"),
                 func.sum(ItemPedido.subtotal).label("total"),
             )
+            .join(Producto, ItemPedido.producto_id == Producto.id, isouter=True)
             .where(ItemPedido.producto_id.isnot(None))
             .group_by(ItemPedido.producto_id)
             .order_by(func.sum(ItemPedido.cantidad).desc())
@@ -188,6 +200,7 @@ class ReporteRepository:
                 nombre=r.nombre or "",
                 cantidad_vendida=_int(r.cantidad_vendida),
                 total=_dec(r.total),
+                categoria=r.categoria,
             )
             for r in mas_vendidos_rows
         ]

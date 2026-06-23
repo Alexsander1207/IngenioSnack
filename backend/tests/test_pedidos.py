@@ -30,6 +30,8 @@ def _pedido_read(usuario_id=None):
         descuento=Decimal("0.00"),
         total=Decimal("10.00"),
         fidelidad_acreditada=False,
+        stock_liberado=False,
+        pickup_at=None,
         created_at=now,
         updated_at=now,
         items=[
@@ -61,6 +63,9 @@ class FakePedidoApiService:
     def listar_admin(self):
         return [self.pedido]
 
+    def listar_vencidos(self):
+        return []
+
     def obtener_pedido(self, pedido_id, usuario_id=None, is_admin=False):
         return self.pedido
 
@@ -82,6 +87,8 @@ class FakeProductoRepo:
 class FakePedidoRepo:
     def __init__(self) -> None:
         self.pedido = None
+        self.usuario = SimpleNamespace(id=uuid4(), conducta_score=100, banned_until=None, ban_reason=None)
+        self.stock_movimientos = []
         self.commits = 0
         self.rollbacks = 0
 
@@ -97,11 +104,27 @@ class FakePedidoRepo:
         self.pedido = pedido
         return pedido
 
+    def add_stock_movimiento(self, **kwargs):
+        movimiento = SimpleNamespace(**kwargs)
+        self.stock_movimientos.append(movimiento)
+        return movimiento
+
+    def mark_stock_liberado(self, pedido):
+        pedido.stock_liberado = True
+        return pedido
+
+    def get_usuario(self, usuario_id):
+        self.usuario.id = usuario_id
+        return self.usuario
+
     def list_by_usuario(self, usuario_id):
         return []
 
     def list_all(self):
         return [self.pedido] if self.pedido else []
+
+    def list_vencidos(self, limite):
+        return []
 
     def get(self, pedido_id):
         if self.pedido and self.pedido.id == pedido_id:
@@ -131,8 +154,14 @@ class FakeFidelidadService:
     def __init__(self) -> None:
         self.calls = 0
 
-    def acreditar_por_pedido(self, pedido):
+    def acreditar_por_pedido(self, usuario_id, pedido_id, total_pedido, descripcion=None):
         self.calls += 1
+
+    def deducir_puntos_promo(self, usuario_id, pedido_id, puntos, descripcion=None):
+        pass
+
+    def devolver_puntos_promo(self, pedido_id):
+        pass
 
 
 def teardown_function():
@@ -244,6 +273,81 @@ def test_cambio_a_recogido_no_acredita_fidelidad_dos_veces():
 
     assert fidelidad.calls == 1
     assert pedido.fidelidad_acreditada is True
+
+
+def test_crear_pedido_rechaza_estudiante_baneado():
+    banned_until = datetime.now(timezone.utc).replace(year=datetime.now(timezone.utc).year + 1)
+    app.dependency_overrides[get_current_user] = lambda: SimpleNamespace(
+        id=uuid4(),
+        rol=UsuarioRol.ESTUDIANTE,
+        activo=True,
+        banned_until=banned_until,
+        ban_reason="Pedido no recogido.",
+    )
+    app.dependency_overrides[get_pedido_service] = lambda: FakePedidoApiService()
+
+    response = client.post(
+        "/api/v1/pedidos",
+        json={"items": [{"producto_id": str(uuid4()), "cantidad": 1}]},
+    )
+
+    assert response.status_code == 403
+    assert response.json()["detail"] == "Pedido no recogido."
+
+
+def test_pedido_no_recogido_penaliza_conducta_y_devuelve_stock():
+    producto = SimpleNamespace(
+        id=uuid4(),
+        nombre="Cafe",
+        precio=Decimal("5.00"),
+        stock=10,
+        activo=True,
+    )
+    pedido_repo = FakePedidoRepo()
+    service = PedidoService(pedido_repo, FakeProductoRepo(producto))
+    pedido = service.crear_pedido(
+        pedido_repo.usuario.id,
+        PedidoCreate(items=[PedidoItemCreate(producto_id=producto.id, cantidad=2)]),
+    )
+
+    assert producto.stock == 8
+
+    service.cambiar_estado(pedido.id, PedidoEstado.NO_RECOGIDO)
+
+    assert pedido_repo.usuario.conducta_score == 80
+    assert producto.stock == 10
+    assert pedido.stock_liberado is True
+    assert any(m.tipo_movimiento.value == "CANCELACION" for m in pedido_repo.stock_movimientos)
+
+
+def test_pedido_recogido_no_puede_marcarse_no_recogido():
+    producto = SimpleNamespace(
+        id=uuid4(),
+        nombre="Cafe",
+        precio=Decimal("5.00"),
+        stock=10,
+        activo=True,
+    )
+    pedido_repo = FakePedidoRepo()
+    service = PedidoService(pedido_repo, FakeProductoRepo(producto), FakeFidelidadService())
+    pedido = service.crear_pedido(
+        uuid4(),
+        PedidoCreate(items=[PedidoItemCreate(producto_id=producto.id, cantidad=1)]),
+    )
+    service.cambiar_estado(pedido.id, PedidoEstado.RECOGIDO)
+
+    response = client.patch(
+        f"/api/v1/pedidos/{uuid4()}/estado",
+        json={"estado": "NO_RECOGIDO"},
+    )
+    assert response.status_code in {401, 403}
+
+    try:
+        service.cambiar_estado(pedido.id, PedidoEstado.NO_RECOGIDO)
+    except Exception as exc:
+        assert getattr(exc, "status_code", None) == 409
+    else:
+        raise AssertionError("Debio rechazar pedido recogido como no recogido")
 
 
 def test_estado_invalido_es_rechazado():

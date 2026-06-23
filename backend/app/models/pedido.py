@@ -15,6 +15,7 @@ class PedidoEstado(str, enum.Enum):
     LISTO = "LISTO"
     RECOGIDO = "RECOGIDO"
     CANCELADO = "CANCELADO"
+    NO_RECOGIDO = "NO_RECOGIDO"
 
 
 class Pedido(Base):
@@ -32,6 +33,8 @@ class Pedido(Base):
     descuento: Mapped[Decimal] = mapped_column(Numeric(10, 2), nullable=False, default=0)
     total: Mapped[Decimal] = mapped_column(Numeric(10, 2), nullable=False, default=0)
     fidelidad_acreditada: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
+    pickup_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    stock_liberado: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now(), nullable=False)
     updated_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True),

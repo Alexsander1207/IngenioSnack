@@ -79,6 +79,9 @@ class ResumenFidelidad(BaseModel):
     sellos: int
     sandwiches: int = 0
     cafesGratis: int = 0
+    sellosObjetivo: int = 10
+    puntosPorSol: Decimal = Decimal("1.00")
+    sellosPorPedido: int = 1
     premiosDinamicos: list[PremioDinamicoRead] = Field(default_factory=list)
     movimientos: list[MovimientoFidelidadRead]
 

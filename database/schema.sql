@@ -15,7 +15,8 @@ begin
       'PREPARANDO',
       'LISTO',
       'RECOGIDO',
-      'CANCELADO'
+      'CANCELADO',
+      'NO_RECOGIDO'
     );
   end if;
 
@@ -41,6 +42,7 @@ alter type fidelidad_movimiento_tipo add value if not exists 'ACREDITACION_PEDID
 alter type fidelidad_movimiento_tipo add value if not exists 'AJUSTE_ADMIN';
 alter type fidelidad_movimiento_tipo add value if not exists 'CANJE';
 alter type fidelidad_movimiento_tipo add value if not exists 'REVERSA';
+alter type pedido_estado add value if not exists 'NO_RECOGIDO';
 
 create table if not exists usuarios (
   id uuid primary key default gen_random_uuid(),
@@ -50,6 +52,9 @@ create table if not exists usuarios (
   hashed_password text not null,
   rol usuario_rol not null default 'ESTUDIANTE',
   activo boolean not null default true,
+  conducta_score integer not null default 100 check (conducta_score between 0 and 100),
+  banned_until timestamptz,
+  ban_reason text,
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now()
 );
@@ -64,6 +69,11 @@ create table if not exists productos (
   stock integer not null default 0 check (stock >= 0),
   disponible boolean not null default true,
   activo boolean not null default true,
+  calorias integer check (calorias is null or calorias >= 0),
+  proteinas numeric(10, 2) check (proteinas is null or proteinas >= 0),
+  carbohidratos numeric(10, 2) check (carbohidratos is null or carbohidratos >= 0),
+  grasas numeric(10, 2) check (grasas is null or grasas >= 0),
+  alergenos text,
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now()
 );
@@ -91,6 +101,8 @@ create table if not exists pedidos (
   descuento numeric(10, 2) not null default 0 check (descuento >= 0),
   total numeric(10, 2) not null default 0 check (total >= 0),
   fidelidad_acreditada boolean not null default false,
+  pickup_at timestamptz,
+  stock_liberado boolean not null default false,
   notas text,
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now()
@@ -186,6 +198,31 @@ create table if not exists categorias (
 alter table productos
   add column if not exists categoria_id uuid null references categorias(id) on delete set null;
 
+alter table usuarios
+  add column if not exists conducta_score integer not null default 100,
+  add column if not exists banned_until timestamptz,
+  add column if not exists ban_reason text;
+
+alter table pedidos
+  add column if not exists pickup_at timestamptz,
+  add column if not exists stock_liberado boolean not null default false;
+
+-- Nutrition fields are nullable to preserve existing products.
+alter table productos
+  add column if not exists calorias integer,
+  add column if not exists proteinas numeric(10, 2),
+  add column if not exists carbohidratos numeric(10, 2),
+  add column if not exists grasas numeric(10, 2),
+  add column if not exists alergenos text;
+
+create table if not exists favoritos_productos (
+  id uuid primary key default gen_random_uuid(),
+  usuario_id uuid not null references usuarios(id) on delete cascade,
+  producto_id uuid not null references productos(id) on delete cascade,
+  created_at timestamptz not null default now(),
+  constraint uq_favoritos_productos_usuario_producto unique(usuario_id, producto_id)
+);
+
 create index if not exists idx_usuarios_rol on usuarios(rol);
 create index if not exists idx_productos_activo_disponible on productos(activo, disponible);
 create index if not exists idx_pedidos_usuario_id on pedidos(usuario_id);
@@ -203,3 +240,5 @@ create unique index if not exists uq_fidelidad_regla_principal_activa
 create index if not exists idx_fidelidad_reglas_activo on fidelidad_reglas(activo);
 create index if not exists idx_categorias_slug on categorias(slug);
 create index if not exists idx_productos_categoria_id on productos(categoria_id);
+create index if not exists idx_favoritos_productos_usuario_id on favoritos_productos(usuario_id);
+create index if not exists idx_favoritos_productos_producto_id on favoritos_productos(producto_id);

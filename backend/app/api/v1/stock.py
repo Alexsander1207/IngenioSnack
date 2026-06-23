@@ -8,7 +8,7 @@ from app.core.security import require_role
 from app.models.usuario import UsuarioRol
 from app.repositories.producto_repository import ProductoRepository
 from app.repositories.stock_repository import StockRepository
-from app.schemas.stock_schema import MovimientoCreate, MovimientoRead, StockItem
+from app.schemas.stock_schema import MovimientoCreate, MovimientoRead, StockAlertaRead, StockItem
 from app.services.stock_service import StockService
 
 router = APIRouter(prefix="/stock", tags=["stock"])
@@ -26,6 +26,15 @@ def list_stock(service: StockService = Depends(get_stock_service)) -> list:
 @router.get("/movimientos", response_model=list[MovimientoRead])
 def list_movimientos(service: StockService = Depends(get_stock_service)) -> list:
     return service.list_movimientos()
+
+
+@router.get(
+    "/alertas",
+    response_model=list[StockAlertaRead],
+    dependencies=[Depends(require_role(UsuarioRol.ADMIN))],
+)
+def list_alertas_stock(service: StockService = Depends(get_stock_service)) -> list[StockAlertaRead]:
+    return service.list_alertas()
 
 
 @router.get("/producto/{producto_id}", response_model=list[MovimientoRead])

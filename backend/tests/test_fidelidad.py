@@ -22,6 +22,7 @@ from app.schemas.fidelidad_schema import (
     FidelidadReglaCreate,
     RankingFidelidadItem,
 )
+from app.services.fidelidad_service import FidelidadService
 
 
 client = TestClient(app)
@@ -227,6 +228,30 @@ def test_acreditar_calcula_puntos_correctamente():
     )
 
     assert movimiento.puntos == 75  # floor(75.90)
+
+
+def test_resumen_fidelidad_expone_regla_activa_para_visual():
+    usuario_id = uuid4()
+    repo = FakeFidelidadRepo()
+    repo._movimientos = [
+        SimpleNamespace(
+            id=uuid4(),
+            usuario_id=usuario_id,
+            pedido_id=None,
+            tipo_movimiento=TipoMovimientoFidelidad.AJUSTE_ADMIN,
+            puntos=12,
+            sellos=2,
+            descripcion=None,
+            created_at=datetime.now(timezone.utc),
+        ),
+    ]
+    service = FidelidadService(repo)
+
+    resumen = service.get_resumen(usuario_id)
+
+    assert resumen.sellosObjetivo == 10
+    assert resumen.puntosPorSol == Decimal("1")
+    assert resumen.sellosPorPedido == 1
 
 
 # ---------------------------------------------------------------------------

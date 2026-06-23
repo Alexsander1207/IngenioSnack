@@ -1,19 +1,20 @@
 import { apiFetch } from '../../services/apiClient';
 import { useState, useEffect } from 'react';
 import { useToast } from '../../components/Toast';
-import { ClipboardList, Clock, CheckCircle2, Ban, Play, Check, CheckSquare, User, RefreshCw } from 'lucide-react';
-import { createClient } from '@supabase/supabase-js';
+import { ClipboardList, Clock, CheckCircle2, Ban, Play, Check, CheckSquare, User, RefreshCw, AlertTriangle } from 'lucide-react';
 
 export default function Pedidos() {
   const [pedidos, setPedidos] = useState([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+  const [stockAlerts, setStockAlerts] = useState([]);
   const { toast } = useToast();
 
   const normalizePedido = (pedido) => ({
     ...pedido,
     estado: pedido.estado === 'PREPARANDO' ? 'EN_PREPARACION' : pedido.estado,
     fecha: pedido.fecha || pedido.created_at,
+    pickupAt: pedido.pickup_at || pedido.pickupAt || null,
     nombreEstudiante: pedido.nombreEstudiante || pedido.usuario?.nombre || pedido.usuario_id || 'Estudiante',
     total: Number(pedido.total || 0),
     items: Array.isArray(pedido.items)
@@ -43,35 +44,29 @@ export default function Pedidos() {
   useEffect(() => {
     loadPedidos();
     
-    let channel;
-
     // Fallback: consulta cada 5 segundos si el tiempo real de Supabase no está configurado o falla
     const pollInterval = setInterval(() => {
       loadPedidos();
     }, 5000);
     
-    apiFetch('/api/config/supabase')
-      .then(r => r.json())
-      .then(cfg => {
-        if (cfg.supabaseUrl && cfg.supabaseKey) {
-          const supabase = createClient(cfg.supabaseUrl, cfg.supabaseKey);
-          channel = supabase
-            .channel('pedidos-realtime')
-            .on(
-              'postgres_changes',
-              { event: '*', schema: 'public', table: 'pedidos' },
-              () => {
-                loadPedidos();
-              }
-            )
-            .subscribe();
-        }
-      })
-      .catch(() => {});
+    const loadStockAlerts = () => {
+      apiFetch('/api/stock/alertas')
+        .then(r => r.ok ? r.json() : [])
+        .then(data => {
+          const alerts = Array.isArray(data) ? data : [];
+          setStockAlerts(alerts);
+          if (alerts.length > 0) {
+            toast(`${alerts.length} producto(s) con stock bajo`, 'warning');
+          }
+        })
+        .catch(() => {});
+    };
+    loadStockAlerts();
+    const stockInterval = setInterval(loadStockAlerts, 5000);
 
     return () => {
       clearInterval(pollInterval);
-      if (channel) channel.unsubscribe();
+      clearInterval(stockInterval);
     };
   }, []);
 
@@ -93,13 +88,28 @@ export default function Pedidos() {
     }
   };
 
+  const revisarVencidos = async () => {
+    try {
+      const res = await apiFetch('/api/pedidos/vencidos');
+      const data = await res.json();
+      const vencidos = Array.isArray(data) ? data : [];
+      toast(
+        vencidos.length ? `${vencidos.length} pedido(s) vencido(s) por revisar` : 'No hay pedidos vencidos',
+        vencidos.length ? 'warning' : 'success'
+      );
+      if (vencidos.length) loadPedidos(true);
+    } catch {
+      toast('Error al revisar vencidos', 'error');
+    }
+  };
+
   if (loading) return <div className="screen"><p className="loading">Cargando pedidos...</p></div>;
 
   // Group columns
   const colPendiente = pedidos.filter(p => p.estado === 'PENDIENTE' || p.estado === 'CONFIRMADO').sort((a, b) => new Date(a.fecha) - new Date(b.fecha));
   const colPreparacion = pedidos.filter(p => p.estado === 'EN_PREPARACION').sort((a, b) => new Date(a.fecha) - new Date(b.fecha));
   const colListo = pedidos.filter(p => p.estado === 'LISTO').sort((a, b) => new Date(a.fecha) - new Date(b.fecha));
-  const colFinalizado = pedidos.filter(p => p.estado === 'RECOGIDO' || p.estado === 'CANCELADO').sort((a, b) => new Date(b.fecha) - new Date(a.fecha));
+  const colFinalizado = pedidos.filter(p => p.estado === 'RECOGIDO' || p.estado === 'CANCELADO' || p.estado === 'NO_RECOGIDO').sort((a, b) => new Date(b.fecha) - new Date(a.fecha));
 
   const formatTime = (dateStr) => {
     if (!dateStr) return '';
@@ -120,21 +130,46 @@ export default function Pedidos() {
             <h2>Panel Kanban de Pedidos</h2>
             <p className="screen-sub">Gestión en tiempo real del flujo de pedidos de los estudiantes</p>
           </div>
-          <button
-            onClick={() => loadPedidos(true)}
-            disabled={refreshing}
-            style={{
-              display: 'flex', alignItems: 'center', gap: '6px',
-              padding: '8px 16px', borderRadius: '4px', border: '1px solid #EFE7E0',
-              background: '#FFF', color: 'var(--text)', cursor: refreshing ? 'not-allowed' : 'pointer',
-              fontSize: '13px', fontWeight: 700, opacity: refreshing ? 0.6 : 1,
-            }}
-          >
-            <RefreshCw size={14} style={{ animation: refreshing ? 'spin 1s linear infinite' : 'none' }} />
-            {refreshing ? 'Actualizando...' : 'Actualizar'}
-          </button>
+          <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', justifyContent: 'flex-end' }}>
+            <button
+              onClick={revisarVencidos}
+              style={{
+                display: 'flex', alignItems: 'center', gap: '6px',
+                padding: '8px 16px', borderRadius: '4px', border: '1px solid rgba(217,119,6,0.35)',
+                background: '#FFF7ED', color: '#9A5800', cursor: 'pointer',
+                fontSize: '13px', fontWeight: 700,
+              }}
+            >
+              <AlertTriangle size={14} />
+              Revisar vencidos
+            </button>
+            <button
+              onClick={() => loadPedidos(true)}
+              disabled={refreshing}
+              style={{
+                display: 'flex', alignItems: 'center', gap: '6px',
+                padding: '8px 16px', borderRadius: '4px', border: '1px solid #EFE7E0',
+                background: '#FFF', color: 'var(--text)', cursor: refreshing ? 'not-allowed' : 'pointer',
+                fontSize: '13px', fontWeight: 700, opacity: refreshing ? 0.6 : 1,
+              }}
+            >
+              <RefreshCw size={14} style={{ animation: refreshing ? 'spin 1s linear infinite' : 'none' }} />
+              {refreshing ? 'Actualizando...' : 'Actualizar'}
+            </button>
+          </div>
         </div>
       </div>
+
+      {stockAlerts.length > 0 && (
+        <div className="admin-feedback error" style={{ display: 'grid', gap: '6px' }}>
+          <strong>Alertas de stock bajo</strong>
+          {stockAlerts.slice(0, 4).map(alert => (
+            <span key={alert.producto_id}>
+              {alert.producto}: {alert.stock_actual} unidad(es). {alert.recomendacion}
+            </span>
+          ))}
+        </div>
+      )}
 
       <div className="kanban-board" style={{ gap: '20px' }}>
         {/* COL 1: PENDIENTES */}
@@ -156,7 +191,7 @@ export default function Pedidos() {
                   <div className="kanban-card-head" style={{ borderBottom: '1px solid #FAF6F0', paddingBottom: '6px', marginBottom: '8px' }}>
                     <span className="kanban-card-id" style={{ color: 'var(--primary)', fontWeight: 800 }}>{p.id}</span>
                     <span className="kanban-card-time" style={{ background: '#FAF0E6', color: '#8B5A2B', padding: '2px 6px', borderRadius: '3px', fontSize: '11px', fontWeight: 600, display: 'inline-flex', alignItems: 'center', gap: '3px' }}>
-                      <Clock size={10} /> {formatTime(p.fecha) || 'Recién'}
+                      <Clock size={10} /> Recojo {formatTime(p.pickupAt) || formatTime(p.fecha) || 'pronto'}
                     </span>
                   </div>
                   <div className="kanban-card-student" style={{ color: 'var(--text)', fontWeight: 800, fontSize: '14px', marginBottom: '8px', display: 'flex', alignItems: 'center', gap: '4px' }}>
@@ -218,7 +253,7 @@ export default function Pedidos() {
                   <div className="kanban-card-head" style={{ borderBottom: '1px solid #FAF6F0', paddingBottom: '6px', marginBottom: '8px' }}>
                     <span className="kanban-card-id" style={{ color: 'var(--primary)', fontWeight: 800 }}>{p.id}</span>
                     <span className="kanban-card-time" style={{ background: '#FAF0E6', color: '#8B5A2B', padding: '2px 6px', borderRadius: '3px', fontSize: '11px', fontWeight: 600, display: 'inline-flex', alignItems: 'center', gap: '3px' }}>
-                      <Clock size={10} /> {formatTime(p.fecha) || 'Recién'}
+                      <Clock size={10} /> Recojo {formatTime(p.pickupAt) || formatTime(p.fecha) || 'pronto'}
                     </span>
                   </div>
                   <div className="kanban-card-student" style={{ color: 'var(--text)', fontWeight: 800, fontSize: '14px', marginBottom: '8px', display: 'flex', alignItems: 'center', gap: '4px' }}>
@@ -272,7 +307,7 @@ export default function Pedidos() {
                   <div className="kanban-card-head" style={{ borderBottom: '1px solid #FAF6F0', paddingBottom: '6px', marginBottom: '8px' }}>
                     <span className="kanban-card-id" style={{ color: 'var(--primary)', fontWeight: 800 }}>{p.id}</span>
                     <span className="kanban-card-time" style={{ background: '#FAF0E6', color: '#8B5A2B', padding: '2px 6px', borderRadius: '3px', fontSize: '11px', fontWeight: 600, display: 'inline-flex', alignItems: 'center', gap: '3px' }}>
-                      <Clock size={10} /> {formatTime(p.fecha) || 'Recién'}
+                      <Clock size={10} /> Recojo {formatTime(p.pickupAt) || formatTime(p.fecha) || 'pronto'}
                     </span>
                   </div>
                   <div className="kanban-card-student" style={{ color: 'var(--text)', fontWeight: 800, fontSize: '14px', marginBottom: '8px', display: 'flex', alignItems: 'center', gap: '4px' }}>
@@ -298,6 +333,14 @@ export default function Pedidos() {
                         style={{ borderRadius: '4px', padding: '6px 14px', display: 'flex', alignItems: 'center', gap: '4px', margin: 0 }}
                       >
                         <CheckSquare size={12} /> Recogido
+                      </button>
+                      <button
+                        className="btn-action ba-danger"
+                        title="No recogido"
+                        onClick={() => cambiarEstado(p.id, 'NO_RECOGIDO')}
+                        style={{ borderRadius: '4px', padding: '6px 10px', display: 'flex', alignItems: 'center', gap: '4px', margin: 0 }}
+                      >
+                        <Ban size={12} /> No recogido
                       </button>
                     </div>
                   </div>
@@ -345,7 +388,7 @@ export default function Pedidos() {
                       S/ {p.total.toFixed(2)}
                     </span>
                     <span className="kanban-card-time" style={{ fontSize: '11px', color: 'var(--text-muted)', display: 'inline-flex', alignItems: 'center', gap: '3px' }}>
-                      <Clock size={10} /> {formatTime(p.fecha) || 'Recién'}
+                      <Clock size={10} /> {formatTime(p.pickupAt) || formatTime(p.fecha) || 'Reciente'}
                     </span>
                   </div>
                 </div>

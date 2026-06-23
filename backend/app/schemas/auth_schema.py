@@ -25,6 +25,9 @@ class UserRead(BaseModel):
     codigo_estudiante: str | None = None
     rol: UsuarioRol
     activo: bool
+    conducta_score: int = 100
+    banned_until: datetime | None = None
+    ban_reason: str | None = None
     created_at: datetime | None = None
     updated_at: datetime | None = None
 
